@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:kms/models/page.dart';
+import 'package:kms/page_controller.dart';
 import 'package:kms/pages/setting/index.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -9,7 +13,7 @@ class ExampleSidebarX extends StatelessWidget {
     super.key,
     required SidebarXController controller,
     required this.pages,
-  })  : _controller = controller;
+  }) : _controller = controller;
 
   final SidebarXController _controller;
   final List<PageInfo> pages;
@@ -18,8 +22,15 @@ class ExampleSidebarX extends StatelessWidget {
   Widget build(BuildContext context) {
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
     final List<SidebarXItem> items = [];
+    final pageController = Get.find<GetxPageController>();
     for (var it in pages) {
-      items.add(SidebarXItem(icon: it.icon, label: it.label));
+      items.add(SidebarXItem(
+          icon: it.icon,
+          label: it.label,
+          onTap: () {
+            pageController.page.value = it.page;
+            print(pageController.page.value);
+          }));
     }
     return SidebarX(
       controller: _controller,
@@ -74,10 +85,19 @@ class ExampleSidebarX extends StatelessWidget {
           color: Theme.of(context).dividerColor.withOpacity(0.15), height: 1),
       headerBuilder: (context, extended) {
         return SizedBox(
-          height: 100,
+          height: extended ? 80 : 64,
+          width: extended ? 80 : 64,
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Image.asset('assets/avatar.jpg'),
+            padding: const EdgeInsets.all(5),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(50),
+              child: Image.asset(
+                'assets/avatar.jpg',
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
         );
       },
@@ -107,7 +127,10 @@ class ExampleSidebarX extends StatelessWidget {
                   ),
               ],
             ),
-            onPressed: () => {Navigator.of(context).push(createRoute())},
+            onPressed: () => {
+              pageController.page.value = const SettingPage(),
+              print(pageController.page.value)
+            },
           ),
         );
       },
@@ -115,9 +138,9 @@ class ExampleSidebarX extends StatelessWidget {
   }
 }
 
-Route createRoute() {
+Route createRoute(Widget page) {
   return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => SettingPage(),
+    pageBuilder: (context, animation, secondaryAnimation) => page,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       const begin = Offset(0.0, 1.0);
       const end = Offset.zero;

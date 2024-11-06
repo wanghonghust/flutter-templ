@@ -100,7 +100,6 @@ class _PlutoGridExamplePageState extends State<ApiKeyPage> {
       return;
     }
     data = await getAsymmetricKeys(page.toString(), "20");
-    print(data?.count);
     if (data != null && data!.results.isNotEmpty) {
       setState(() {
         keys = [...data!.results, ...keys];

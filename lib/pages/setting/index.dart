@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kms/preferences.dart';
 import 'package:provider/provider.dart';
-
+import 'package:get/get.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -11,14 +11,11 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
-  
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("设置")
-      ),
+      appBar: AppBar(title: const Text("设置")),
       body: Center(
           child: ListView(
         children: [
@@ -27,28 +24,30 @@ class _SettingPageState extends State<SettingPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const ListTile(
-                  leading: Icon(Icons.album),
-                  title: Text('The Enchanted Nightingale'),
-                  subtitle:
-                      Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: <Widget>[
-                    TextButton(
-                      child: const Text('dark'),
-                      onPressed: () => {
-                        themeNotifier.toggleTheme(context)
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      child: const Text('light'),
-                      onPressed: () {/* ... */},
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                ListTile(
+                  title: const Text('主题设置'),
+                  subtitle: SegmentedButton<ThemeMode>(
+                    selected: {themeNotifier.themeMode},
+                    segments: const <ButtonSegment<ThemeMode>>[
+                      ButtonSegment<ThemeMode>(
+                          value: ThemeMode.system,
+                          label: Text('System'),
+                          icon: Icon(Icons.contrast),tooltip: "主题跟随系统"),
+                      ButtonSegment<ThemeMode>(
+                          value: ThemeMode.light,
+                          label: Text('Light'),
+                          icon: Icon(Icons.light_mode)),
+                      ButtonSegment<ThemeMode>(
+                          value: ThemeMode.dark,
+                          label: Text('Dark'),
+                          icon: Icon(Icons.dark_mode)),
+                    ],
+                    multiSelectionEnabled: false,
+                    onSelectionChanged: (Set<ThemeMode> selected) {
+                      themeNotifier.setTheme(selected.first);
+                      // Get.snackbar("Hi", "I'm modern snackbar");
+                    },
+                  ),
                 ),
               ],
             ),

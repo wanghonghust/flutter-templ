@@ -1,6 +1,8 @@
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
 import 'package:pluto_grid/pluto_grid.dart';
 
 // final ThemeData lightTheme = ThemeData(
@@ -132,97 +134,87 @@ const PlutoGridStyleConfig tableStyleDark = PlutoGridStyleConfig(
 
 class ThemeNotifier with ChangeNotifier {
   final ThemeData _currentTheme;
-  bool _isDarkMode;
+  BuildContext context;
   ThemeMode _themeMode;
   PlutoGridStyleConfig _tableConfiguration;
 
-  ThemeNotifier(this._currentTheme, this._isDarkMode, this._themeMode,
+  ThemeNotifier(this._currentTheme, this.context, this._themeMode,
       this._tableConfiguration);
 
   ThemeData get currentTheme => _currentTheme;
-  bool get isDarkMode => _isDarkMode;
+  bool get isDarkMode =>
+      Theme.of(context).colorScheme.brightness == Brightness.dark;
   PlutoGridStyleConfig get tableConfiguration => _tableConfiguration;
   ThemeMode get themeMode => _themeMode;
 
-  void toggleTheme(BuildContext context) {
-    Brightness brightness = Theme.of(context).brightness;
-    if (brightness == Brightness.dark) {
-      _isDarkMode = false;
-    } else {
-      _isDarkMode = !_isDarkMode;
-    }
-    _themeMode = _isDarkMode ? ThemeMode.dark : ThemeMode.light;
-    _tableConfiguration = _isDarkMode
-        ? const PlutoGridStyleConfig.dark()
-        : const PlutoGridStyleConfig();
-    _tableConfiguration = _isDarkMode ? tableStyleDark : tableStyleLight;
+  void setTheme(ThemeMode themeMode) {
+    _themeMode = themeMode;
+    print(Get.theme.brightness);
+    _tableConfiguration = Get.isDarkMode ? tableStyleDark : tableStyleLight;
     notifyListeners();
-  }
-
-  void followSystem() {
-    _themeMode = ThemeMode.system;
   }
 }
 
 var lightTheme = FlexThemeData.light(
   scheme: FlexScheme.indigo,
   subThemesData: const FlexSubThemesData(
-    interactionEffects: true,
-    tintedDisabledControls: true,
-    useM2StyleDividerInM3: true,
-    inputDecoratorIsFilled: true,
-    inputDecoratorBorderType: FlexInputBorderType.outline,
-    alignedDropdown: true,
-    appBarCenterTitle: false,
-    bottomNavigationBarMutedUnselectedLabel: true,
-    bottomNavigationBarMutedUnselectedIcon: true,
-    navigationBarMutedUnselectedLabel: true,
-    navigationBarMutedUnselectedIcon: true,
-    navigationBarIndicatorOpacity: 0.03,
-    navigationBarIndicatorRadius: 8.0,
-    navigationBarBackgroundSchemeColor: SchemeColor.transparent,
-    navigationBarHeight: 60.0,
-    adaptiveRemoveNavigationBarTint: FlexAdaptive.all(),
-    navigationRailUseIndicator: true,
-    navigationRailLabelType: NavigationRailLabelType.all,
-    cardElevation: 0,
-    searchBarElevation: 0.0,
-    searchViewElevation: 0.0,
-    searchBarRadius: 9.0,
-    searchViewRadius: 9.0,
-    bottomNavigationBarElevation: 10
-  ),
+      interactionEffects: true,
+      tintedDisabledControls: true,
+      useM2StyleDividerInM3: true,
+      inputDecoratorIsFilled: true,
+      inputDecoratorBorderType: FlexInputBorderType.outline,
+      alignedDropdown: true,
+      appBarCenterTitle: false,
+      bottomNavigationBarMutedUnselectedLabel: true,
+      bottomNavigationBarMutedUnselectedIcon: true,
+      navigationBarMutedUnselectedLabel: true,
+      navigationBarMutedUnselectedIcon: true,
+      navigationBarIndicatorOpacity: 0.03,
+      navigationBarIndicatorRadius: 8.0,
+      navigationBarBackgroundSchemeColor: SchemeColor.transparent,
+      navigationBarHeight: 60.0,
+      adaptiveRemoveNavigationBarTint: FlexAdaptive.all(),
+      navigationRailUseIndicator: true,
+      navigationRailLabelType: NavigationRailLabelType.all,
+      cardElevation: 0,
+      searchBarElevation: 0.0,
+      searchViewElevation: 0.0,
+      searchBarRadius: 9.0,
+      searchViewRadius: 9.0,
+      bottomNavigationBarElevation: 10),
   visualDensity: FlexColorScheme.comfortablePlatformDensity,
   cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
 );
 var darkTheme = FlexThemeData.dark(
   scheme: FlexScheme.indigo,
+  // scaffoldBackground: const Color.fromARGB(255, 27, 27, 31),
+  // appBarBackground: const Color.fromARGB(255, 39, 40, 48),
+
   subThemesData: const FlexSubThemesData(
-    interactionEffects: true,
-    tintedDisabledControls: true,
-    blendOnColors: true,
-    useM2StyleDividerInM3: true,
-    inputDecoratorIsFilled: true,
-    inputDecoratorBorderType: FlexInputBorderType.outline,
-    alignedDropdown: true,
-    appBarCenterTitle: false,
-    bottomNavigationBarMutedUnselectedLabel: true,
-    bottomNavigationBarMutedUnselectedIcon: true,
-    navigationBarMutedUnselectedLabel: true,
-    navigationBarMutedUnselectedIcon: true,
-    navigationBarIndicatorOpacity: 0.03,
-    navigationBarIndicatorRadius: 8.0,
-    navigationBarBackgroundSchemeColor: SchemeColor.transparent,
-    navigationBarHeight: 60.0,
-    navigationRailUseIndicator: true,
-    navigationRailLabelType: NavigationRailLabelType.all,
-    cardElevation: 0,
-    searchBarElevation: 0.0,
-    searchViewElevation: 0.0,
-    searchBarRadius: 9.0,
-    searchViewRadius: 9.0,
-    bottomNavigationBarElevation: 10
-  ),
+      interactionEffects: true,
+      tintedDisabledControls: true,
+      blendOnColors: true,
+      useM2StyleDividerInM3: true,
+      inputDecoratorIsFilled: true,
+      inputDecoratorBorderType: FlexInputBorderType.outline,
+      alignedDropdown: true,
+      appBarCenterTitle: false,
+      bottomNavigationBarMutedUnselectedLabel: true,
+      bottomNavigationBarMutedUnselectedIcon: true,
+      navigationBarMutedUnselectedLabel: true,
+      navigationBarMutedUnselectedIcon: true,
+      navigationBarIndicatorOpacity: 0.03,
+      navigationBarIndicatorRadius: 8.0,
+      navigationBarBackgroundSchemeColor: SchemeColor.transparent,
+      navigationBarHeight: 60.0,
+      navigationRailUseIndicator: true,
+      navigationRailLabelType: NavigationRailLabelType.all,
+      cardElevation: 0,
+      searchBarElevation: 0.0,
+      searchViewElevation: 0.0,
+      searchBarRadius: 9.0,
+      searchViewRadius: 9.0,
+      bottomNavigationBarElevation: 10),
   visualDensity: FlexColorScheme.comfortablePlatformDensity,
   cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
 );
