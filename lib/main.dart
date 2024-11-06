@@ -61,7 +61,7 @@ class KMSState extends State<MainApp> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
     return ListenableBuilder(
         listenable: controller,
         builder: (context, child) {
@@ -73,7 +73,7 @@ class KMSState extends State<MainApp> with TickerProviderStateMixin {
               themeMode: themeNotifier.themeMode,
               home: Scaffold(
                 key: key,
-                appBar: isSmallScreen
+                appBar: !isDesktop
                     ? AppBar(
                         title: Text(_getTitleByIndex(controller.selectedIndex)),
                         actions: [
@@ -96,24 +96,26 @@ class KMSState extends State<MainApp> with TickerProviderStateMixin {
                         ],
                       )
                     : null,
-                drawer: !isSmallScreen
+                drawer: isDesktop
                     ? ExampleSidebarX(
                         controller: controller,
                         pages: pages,
                       )
                     : null,
-                body: Row(
-                  children: [
-                    if (!isSmallScreen)
-                      ExampleSidebarX(controller: controller, pages: pages),
-                    Expanded(
-                      child: _Screen(
-                        page: pageController.page.value,
+                body: LayoutBuilder(builder: (context, constraints) {
+                  return Row(
+                    children: [
+                      if (isDesktop)
+                        ExampleSidebarX(controller: controller, pages: pages),
+                      Expanded(
+                        child: _Screen(
+                          page: Obx(() => pageController.page.value),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                bottomNavigationBar: isSmallScreen ? _buildBottomBar() : null,
+                    ],
+                  );
+                }),
+                bottomNavigationBar: !isDesktop ? _buildBottomBar() : null,
               ),
             );
           });

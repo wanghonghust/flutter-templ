@@ -1,14 +1,15 @@
-import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kms/models/page.dart';
 import 'package:kms/page_controller.dart';
 import 'package:kms/pages/setting/index.dart';
+import 'package:kms/utils/modal.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 
-class ExampleSidebarX extends StatelessWidget {
+class ExampleSidebarX extends StatelessWidget{
   const ExampleSidebarX({
     super.key,
     required SidebarXController controller,
@@ -20,25 +21,24 @@ class ExampleSidebarX extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
     final List<SidebarXItem> items = [];
-    final pageController = Get.find<GetxPageController>();
+    var pageController = Get.find<GetxPageController>();
     for (var it in pages) {
       items.add(SidebarXItem(
           icon: it.icon,
           label: it.label,
           onTap: () {
             pageController.page.value = it.page;
-            print(pageController.page.value);
           }));
     }
     return SidebarX(
       controller: _controller,
-      showToggleButton: !isSmallScreen,
+      showToggleButton: isDesktop,
       theme: SidebarXTheme(
         margin: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isSmallScreen
+          color: !isDesktop
               ? Theme.of(context).scaffoldBackgroundColor
               : Theme.of(context).hoverColor,
           borderRadius: BorderRadius.circular(10),
@@ -76,7 +76,7 @@ class ExampleSidebarX extends StatelessWidget {
       extendedTheme: SidebarXTheme(
         width: 200,
         decoration: BoxDecoration(
-          color: isSmallScreen
+          color: !isDesktop
               ? Theme.of(context).scaffoldBackgroundColor
               : Theme.of(context).hoverColor,
         ),
@@ -128,8 +128,7 @@ class ExampleSidebarX extends StatelessWidget {
               ],
             ),
             onPressed: () => {
-              pageController.page.value = const SettingPage(),
-              print(pageController.page.value)
+              showModal(context,SettingPage())
             },
           ),
         );

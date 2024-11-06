@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:kms/preferences.dart';
+import 'package:kms/utils/modal.dart';
 import 'package:provider/provider.dart';
-import 'package:get/get.dart';
+import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -14,8 +17,10 @@ class _SettingPageState extends State<SettingPage> {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
+    bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("设置")),
+      appBar: !isDesktop  ? AppBar(title: const Text("设置")):null,
       body: Center(
           child: ListView(
         children: [
@@ -25,30 +30,36 @@ class _SettingPageState extends State<SettingPage> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 ListTile(
-                  title: const Text('主题设置'),
-                  subtitle: SegmentedButton<ThemeMode>(
-                    selected: {themeNotifier.themeMode},
-                    segments: const <ButtonSegment<ThemeMode>>[
-                      ButtonSegment<ThemeMode>(
-                          value: ThemeMode.system,
-                          label: Text('System'),
-                          icon: Icon(Icons.contrast),tooltip: "主题跟随系统"),
-                      ButtonSegment<ThemeMode>(
-                          value: ThemeMode.light,
-                          label: Text('Light'),
-                          icon: Icon(Icons.light_mode)),
-                      ButtonSegment<ThemeMode>(
-                          value: ThemeMode.dark,
-                          label: Text('Dark'),
-                          icon: Icon(Icons.dark_mode)),
-                    ],
-                    multiSelectionEnabled: false,
-                    onSelectionChanged: (Set<ThemeMode> selected) {
-                      themeNotifier.setTheme(selected.first);
-                      // Get.snackbar("Hi", "I'm modern snackbar");
-                    },
-                  ),
-                ),
+                    title: const Text('主题设置'),
+                    subtitle: Row(children: [
+                      Container(
+                        width: 300,
+                        child: SegmentedButton<ThemeMode>(
+                          selected: {themeNotifier.themeMode},
+                          segments: const <ButtonSegment<ThemeMode>>[
+                            ButtonSegment<ThemeMode>(
+                                value: ThemeMode.system,
+                                label: Text('System'),
+                                icon: Icon(Icons.contrast),
+                                tooltip: "主题跟随系统"),
+                            ButtonSegment<ThemeMode>(
+                                value: ThemeMode.light,
+                                label: Text('Light'),
+                                icon: Icon(Icons.light_mode)),
+                            ButtonSegment<ThemeMode>(
+                                value: ThemeMode.dark,
+                                label: Text('Dark'),
+                                icon: Icon(Icons.dark_mode)),
+                          ],
+                          multiSelectionEnabled: false,
+                          onSelectionChanged: (Set<ThemeMode> selected) {
+                            themeNotifier.setTheme(selected.first);
+                            // Get.snackbar("Hi", "I'm modern snackbar");
+                          },
+                        ),
+                      ),
+                      Expanded(child: Container())
+                    ]))
               ],
             ),
           ),
@@ -85,7 +96,9 @@ class _SettingPageState extends State<SettingPage> {
                     const SizedBox(width: 8),
                     TextButton(
                       child: const Text('LISTEN'),
-                      onPressed: () {/* ... */},
+                      onPressed: () {
+                        
+                      },
                     ),
                     const SizedBox(width: 8),
                   ],

@@ -121,6 +121,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.7.10"
+  desktop_multi_window:
+    dependency: "direct main"
+    description:
+      name: desktop_multi_window
+      sha256: "29971186ae0790e32b156f127f9c22c5ee77bdb94b14f7cea23f2356d0c76cfc"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.2.0"
   diff_match_patch:
     dependency: transitive
     description:
@@ -842,6 +850,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "5.7.2"
+  wolt_modal_sheet:
+    dependency: "direct main"
+    description:
+      name: wolt_modal_sheet
+      sha256: "2695dadd87e25604f0d9d64fae3696f4e053dcb7983a71e4494bb94b5bf3b67b"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.9.3"
   xdg_directories:
     dependency: transitive
     description:
