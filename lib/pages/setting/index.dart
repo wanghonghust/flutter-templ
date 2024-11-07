@@ -2,9 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:kms/preferences.dart';
-import 'package:kms/utils/modal.dart';
 import 'package:provider/provider.dart';
-import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
