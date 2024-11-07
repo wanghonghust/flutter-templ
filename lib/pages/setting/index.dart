@@ -21,6 +21,8 @@ class _SettingPageState extends State<SettingPage> {
       appBar: !isDesktop  ? AppBar(title: const Text("设置")):null,
       body: Center(
           child: ListView(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
         children: [
           Card(
             color: Theme.of(context).cardColor,

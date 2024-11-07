@@ -5,10 +5,12 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 void showModal(BuildContext context, Widget child) {
   SliverWoltModalSheetPage page(BuildContext modalSheetContext) {
     return WoltModalSheetPage(
-      backgroundColor: Theme.of(modalSheetContext).cardTheme.color?.withOpacity(0.8),
+      backgroundColor:
+          Theme.of(modalSheetContext).cardTheme.color?.withOpacity(0.8),
       enableDrag: true,
       topBarTitle: Center(
-        child: Text('设置${Theme.of(context).brightness == Brightness.dark ? '暗' : '亮'}模式'),  
+        child: Text(
+            '设置${Theme.of(context).brightness == Brightness.dark ? '暗' : '亮'}模式'),
       ),
       isTopBarLayerAlwaysVisible: true,
       trailingNavBarWidget: Container(
@@ -30,8 +32,10 @@ void showModal(BuildContext context, Widget child) {
   WoltModalSheet.show(
       context: context,
       enableDrag: true,
-      showDragHandle: true,
       pageListBuilder: (modalSheetContext) {
         return [page(modalSheetContext)];
+      },
+      modalTypeBuilder: (BuildContext context) {
+        return WoltModalType.dialog();
       });
 }
