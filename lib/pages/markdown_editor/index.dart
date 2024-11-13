@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:kms/pages/markdown_editor/hilighter.dart';
 
 class MarkdownEditor extends StatefulWidget {
   const MarkdownEditor({Key? key}) : super(key: key);
@@ -298,13 +299,19 @@ Feel free to fork this repository and send pull request 🏁👍
 """;
   @override
   Widget build(BuildContext context) {
+    
     return Markdown(
       data: content,
       selectable: true,
       shrinkWrap: true,
       styleSheet: MarkdownStyleSheet(
-          horizontalRuleDecoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400, width: 0.5))),
+        horizontalRuleDecoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400, width: 0.5)),
+        // code: const TextStyle(color: Colors.white),
+      ),
+      builders: {
+        'code': CodeElementBuilder(context)
+      },
     );
   }
 }
