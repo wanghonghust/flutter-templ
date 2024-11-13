@@ -18,7 +18,7 @@ class _EditorPageState extends State<EditorPage> {
         children: [
           QuillToolbar.simple(
             controller: _controller,
-            configurations: QuillSimpleToolbarConfigurations(
+            configurations: const QuillSimpleToolbarConfigurations(
               // embedButtons: FlutterQuillEmbeds.toolbarButtons(),
             ),
           ),
