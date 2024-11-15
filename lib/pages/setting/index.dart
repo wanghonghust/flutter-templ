@@ -19,7 +19,7 @@ class _SettingPageState extends State<SettingPage> {
 
     return Scaffold(
       appBar: !isDesktop  ? AppBar(title: const Text("设置")):null,
-      body: Center(
+      body: Container(
           child: ListView(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
