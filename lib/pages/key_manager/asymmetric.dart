@@ -15,9 +15,6 @@ class AsymmetricPageState extends State<Asymmetric> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Expandable Demo"),
-      ),
       body: ExpandableTheme(
         data: const ExpandableThemeData(
           iconColor: Colors.blue,
