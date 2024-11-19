@@ -34,6 +34,7 @@ dependencies:
   expandable: ^5.0.1
   url_launcher: ^6.3.1
   easy_image_viewer: ^1.5.1
+  flutter_treeview: ^1.0.7+1
 
 dev_dependencies:
   flutter_test:

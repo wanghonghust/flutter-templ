@@ -5,6 +5,8 @@ import 'package:expandable/expandable.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_treeview/flutter_treeview.dart';
+import 'package:kms/models/test.dart';
 import 'package:kms/pages/key_manager/asymmetric.dart';
 import 'package:kms/pages/markdown_editor/hilighter.dart';
 import 'package:multi_split_view/multi_split_view.dart';
@@ -18,9 +20,79 @@ class MarkdownEditor extends StatefulWidget {
 }
 
 class _MarkdownEditorState extends State<MarkdownEditor> {
-  String content = "";
   @override
   Widget build(BuildContext context) {
+    String content = "qwqwe";
+    Animal otis = Animal(name: 'Otis');
+    Animal zorro = Animal(name: 'Zorro');
+    Person lukas = Person(name: 'Lukas', pets: [otis, zorro]);
+
+    List<Node> nodes = [
+      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
+        Node<Animal>(
+          label: 'Otis',
+          key: 'otis',
+          data: otis,
+        ),
+        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
+        Node(
+          label: 'Zorro',
+          key: 'zorro',
+          data: zorro,
+        ),
+      ]),
+      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
+        Node<Animal>(
+          label: 'Otis',
+          key: 'otis',
+          data: otis,
+        ),
+        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
+        Node(
+          label: 'Zorro',
+          key: 'zorro',
+          data: zorro,
+        ),
+      ]),
+      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
+        Node<Animal>(label: 'Otis', key: 'otis', data: otis, children: [
+          Node<Animal>(
+            label: 'Otis',
+            key: 'otis',
+            data: otis,
+          ),
+        ]),
+        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
+        Node(
+          label: 'Zorro',
+          key: 'zorro',
+          data: zorro,
+        ),
+      ]),
+    ];
+    TreeViewTheme treeViewTheme = const TreeViewTheme(
+      expanderTheme: ExpanderThemeData(
+        type: ExpanderType.chevron,
+        modifier: ExpanderModifier.none,
+        position: ExpanderPosition.start,
+        size: 16,
+      ),
+      labelStyle: TextStyle(
+        fontSize: 16,
+        letterSpacing: 0.3,
+      ),
+      parentLabelStyle: TextStyle(
+        fontSize: 16,
+        letterSpacing: 0.1,
+      ),
+      iconTheme: IconThemeData(
+        size: 18,
+      ),
+      colorScheme: ColorScheme.light(),
+    );
+    final TreeViewController treeViewController =
+        TreeViewController(children: nodes);
+
     final MultiSplitViewThemeData themeData = MultiSplitViewThemeData(
         dividerPainter: DividerPainters.grooved1(
             highlightedThickness: 3,
@@ -35,7 +107,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
               decoration: BoxDecoration(
                   boxShadow: const <BoxShadow>[
                     BoxShadow(
-                        color: Colors.black12,
+                        color: Colors.transparent,
                         blurRadius: 10,
                         offset: Offset(0.5, 0.5),
                         spreadRadius: 1),
@@ -47,14 +119,16 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                           color: Theme.of(context).dividerColor, width: 0.5))),
               child: MultiSplitView(axis: Axis.vertical, initialAreas: [
                 Area(
-                  builder: (context, area) => Asymmetric(),
+                  builder: (context, area) => const Asymmetric(),
                 ),
                 Area(
-                    builder: (context, area) => const Draft(
-                          text: "text",
-                          color: Colors.blue,
-                          borderColor: Colors.transparent,
-                        ))
+                  builder: (context, area) => TreeView(
+                    controller: treeViewController,
+                    theme: treeViewTheme,
+                    nodeBuilder: (context, node) => Text(node.label),
+                    onExpansionChanged: (text, expanded) {},
+                  ),
+                )
               ])),
           data: 'blue'),
       Area(
@@ -70,29 +144,11 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                 imageBuilder: (uri, title, alt) {
                   return InkWell(
                     onTap: () {
-                      // final imageProvider = Image.network(uri.toString())
-                      //     .image;
-                      // showImageViewer(context, imageProvider,
-                      //     onViewerDismissed: () {
-                      //   print("dismissed");
-                      // });
-                      MultiImageProvider multiImageProvider =
-                          MultiImageProvider([
-                        const NetworkImage(
-                            "https://picsum.photos/id/1001/4912/3264"),
-                        const NetworkImage(
-                            "https://picsum.photos/id/1003/1181/1772"),
-                        const NetworkImage(
-                            "https://picsum.photos/id/1004/4912/3264"),
-                        const NetworkImage(
-                            "https://picsum.photos/id/1005/4912/3264")
-                      ]);
-
-                      showImageViewerPager(context, multiImageProvider,
-                          onPageChanged: (page) {
-                        print("page changed to $page");
-                      }, onViewerDismissed: (page) {
-                        print("dismissed while on page $page");
+                      final imageProvider = Image.network(uri.toString())
+                          .image;
+                      showImageViewer(context, imageProvider,
+                          onViewerDismissed: () {
+                        print("dismissed");
                       });
                     },
                     child: Image.network(uri.toString()),
@@ -122,7 +178,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
               allowMultiple: false,
               allowedExtensions: ["md"],
               type: FileType.custom);
-
+          
           if (res != null) {
             setState(() {
               content = File(res.files.first.path!).readAsStringSync();
