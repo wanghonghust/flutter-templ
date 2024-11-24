@@ -9,6 +9,7 @@ import 'package:flutter_treeview/flutter_treeview.dart';
 import 'package:kms/models/test.dart';
 import 'package:kms/pages/key_manager/asymmetric.dart';
 import 'package:kms/pages/markdown_editor/hilighter.dart';
+import 'package:kms/utils/index.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,56 +21,10 @@ class MarkdownEditor extends StatefulWidget {
 }
 
 class _MarkdownEditorState extends State<MarkdownEditor> {
+  String content = "";
+  List<Node> nodes = [];
   @override
   Widget build(BuildContext context) {
-    String content = "qwqwe";
-    Animal otis = Animal(name: 'Otis');
-    Animal zorro = Animal(name: 'Zorro');
-    Person lukas = Person(name: 'Lukas', pets: [otis, zorro]);
-
-    List<Node> nodes = [
-      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
-        Node<Animal>(
-          label: 'Otis',
-          key: 'otis',
-          data: otis,
-        ),
-        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
-        Node(
-          label: 'Zorro',
-          key: 'zorro',
-          data: zorro,
-        ),
-      ]),
-      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
-        Node<Animal>(
-          label: 'Otis',
-          key: 'otis',
-          data: otis,
-        ),
-        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
-        Node(
-          label: 'Zorro',
-          key: 'zorro',
-          data: zorro,
-        ),
-      ]),
-      Node<Person>(label: 'Lukas', key: 'lukas', data: lukas, children: [
-        Node<Animal>(label: 'Otis', key: 'otis', data: otis, children: [
-          Node<Animal>(
-            label: 'Otis',
-            key: 'otis',
-            data: otis,
-          ),
-        ]),
-        //<T> is optional but recommended. If not specified, code can return Node<dynamic> instead of Node<Animal>
-        Node(
-          label: 'Zorro',
-          key: 'zorro',
-          data: zorro,
-        ),
-      ]),
-    ];
     TreeViewTheme treeViewTheme = const TreeViewTheme(
       expanderTheme: ExpanderThemeData(
         type: ExpanderType.chevron,
@@ -125,8 +80,23 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                   builder: (context, area) => TreeView(
                     controller: treeViewController,
                     theme: treeViewTheme,
-                    nodeBuilder: (context, node) => Text(node.label),
+                    nodeBuilder: (context, node) => Row(
+                      children: [
+                        (node.data as FileSystemEntity) is File
+                            ? const Icon(Icons.file_present)
+                            : const Icon(Icons.folder),
+                        Text(node.label)
+                      ],
+                    ),
                     onExpansionChanged: (text, expanded) {},
+                    onNodeDoubleTap: (value) async {
+                      File file = File(value);
+                      if (await file.exists() && file.path.endsWith('.md')) {
+                        setState(() {
+                          content = file.readAsStringSync();
+                        });
+                      }
+                    },
                   ),
                 )
               ])),
@@ -144,8 +114,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                 imageBuilder: (uri, title, alt) {
                   return InkWell(
                     onTap: () {
-                      final imageProvider = Image.network(uri.toString())
-                          .image;
+                      final imageProvider = Image.network(uri.toString()).image;
                       showImageViewer(context, imageProvider,
                           onViewerDismissed: () {
                         print("dismissed");
@@ -174,14 +143,22 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
       body: theme,
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          var res = await FilePicker.platform.pickFiles(
-              allowMultiple: false,
-              allowedExtensions: ["md"],
-              type: FileType.custom);
-          
+          // var res = await FilePicker.platform.pickFiles(
+          //     allowMultiple: false,
+          //     allowedExtensions: ["md"],
+          //     type: FileType.custom);
+
+          // if (res != null) {
+          //   setState(() {
+          //     content = File(res.files.first.path!).readAsStringSync();
+          //   });
+          // }
+          var res = await FilePicker.platform.getDirectoryPath();
           if (res != null) {
-            setState(() {
-              content = File(res.files.first.path!).readAsStringSync();
+            Utils.walkDirAsNode(res).then((value) {
+              setState(() {
+                nodes = [value];
+              });
             });
           }
         },
