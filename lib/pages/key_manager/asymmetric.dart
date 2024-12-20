@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:expandable/expandable.dart';
 import 'package:flutter/material.dart';
+import 'package:kms/widget/custom_tree/src/treeview.dart';
+import 'package:kms/widget/simple_tree/index.dart';
 
 class Asymmetric extends StatefulWidget {
   const Asymmetric({Key? key}) : super(key: key);
@@ -12,6 +14,68 @@ class Asymmetric extends StatefulWidget {
 }
 
 class AsymmetricPageState extends State<Asymmetric> {
+  List<TreeNode<String>> _nodes = [];
+  @override
+  void initState() {
+    super.initState();
+    _nodes = [
+      TreeNode(
+        label: const Text('Project Folder'),
+        value: 'project_folder',
+        children: [
+          TreeNode(
+            label: const Text('src'),
+            icon: Icon(Icons.folder_open),
+            children: [
+              TreeNode(
+                  label: const Text('main.js'),
+                  value: 'main_js',
+                  icon: Icon(Icons.javascript),
+                  isSelected: true),
+              TreeNode(
+                  label: const Text('app.js'),
+                  value: 'app_js',
+                  icon: Icon(Icons.javascript)),
+              TreeNode(
+                  label: const Text('styles.css'),
+                  value: 'styles_css',
+                  icon: Icon(Icons.css)),
+            ],
+          ),
+          TreeNode(
+            label: const Text('public'),
+            value: 'public_folder',
+            icon: Icon(Icons.folder_open),
+            children: [
+              TreeNode(
+                  label: const Text('index.html'),
+                  value: 'index_html',
+                  icon: Icon(Icons.html)),
+              TreeNode(
+                  label: const Text('favicon.ico'),
+                  value: 'favicon',
+                  icon: Icon(Icons.image)),
+            ],
+          ),
+        ],
+      ),
+      TreeNode(
+        label: const Text('Config Files'),
+        value: 'config_folder',
+        children: [
+          TreeNode(
+              label: const Text('package.json'),
+              value: 'package_json',
+              icon: Icon(Icons.settings)),
+          TreeNode(
+              label: const Text('.gitignore'),
+              value: 'gitignore',
+              icon: Icon(Icons.remove_red_eye)),
+        ],
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,11 +85,14 @@ class AsymmetricPageState extends State<Asymmetric> {
           useInkWell: true,
         ),
         child: ListView(
-          physics: const BouncingScrollPhysics(),
+          // physics: const BouncingScrollPhysics(),
           children: <Widget>[
             Card1(),
             Card2(),
             Card3(),
+            SimpleTreeView(
+              nodes: _nodes,
+            )
           ],
         ),
       ),
@@ -89,7 +156,8 @@ class Card1 extends StatelessWidget {
                 ),
                 builder: (_, collapsed, expanded) {
                   return Padding(
-                    padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10),
+                    padding:
+                        const EdgeInsets.only(left: 10, right: 10, bottom: 10),
                     child: Expandable(
                       collapsed: collapsed,
                       expanded: expanded,
