@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kms/widget/dialog/index.dart';
+import 'package:kms/widget/side_bar/drwaer.dart';
 
 class HeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
@@ -6,7 +8,9 @@ class HeaderDelegate extends SliverPersistentHeaderDelegate {
   HeaderDelegate({required this.child});
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => child;
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      child;
 
   @override
   double get maxExtent => 200;
@@ -19,7 +23,6 @@ class HeaderDelegate extends SliverPersistentHeaderDelegate {
     return true;
   }
 }
-
 
 class ApiKeyPage extends StatefulWidget {
   const ApiKeyPage({super.key});
@@ -52,11 +55,20 @@ class _PlutoGridExamplePageState extends State<ApiKeyPage> {
           ),
         ];
       },
-      body: ListView.builder(
-        itemBuilder: (context, index) => Container(
-          height: 100,
-          color: Colors.accents[index % Colors.accents.length].shade400,
-        ),
+      body: Container(
+        child: ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => CustomDialog(
+                  title: const Text('这是一个自定义 Dialog'),
+                  onConfirm: () {
+                    // 执行确认操作
+                  },
+                ),
+              );
+            },
+            child: Text("asdas")),
       ),
     );
   }

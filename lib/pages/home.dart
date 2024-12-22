@@ -53,19 +53,19 @@ class HomeState extends State<Home> {
   Widget build(BuildContext context) {
     isSmallScreen = MediaQuery.of(context).size.width < 600;
     return Scaffold(
-      body: _buildRefresh(context),
+      body: Center(
+        child: _buildRefresh(context),
+      ),
     );
   }
 
   Widget _buildRefresh(BuildContext context) {
-    return EasyRefresh(
-      // 下拉样式
-      header: TDRefreshHeader(loadingIcon: TDLoadingIcon.point),
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.only(top: 10, bottom: 10),
-        child: _buildLogWidget(logs),
-      ),
+    return RefreshIndicator(
+      child: ListView.builder(
+          itemCount: 1,
+          itemBuilder: (context, index) {
+            return _buildLogWidget(logs, context);
+          }),
       // 下拉刷新回调
       onRefresh: () async {
         _getLogData();
@@ -73,10 +73,14 @@ class HomeState extends State<Home> {
     );
   }
 
-  Widget _buildLogWidget(List<Log> logs) {
+  Widget _buildLogWidget(List<Log> logs, BuildContext context) {
     if (logs.isEmpty) {
-      return const TDEmpty(
-        emptyText: '暂无数据',
+      return Container(
+        alignment: Alignment.center,
+        margin: EdgeInsets.only(top: MediaQuery.of(context).size.height / 3),
+        child: const TDEmpty(
+          emptyText: '暂无数据',
+        ),
       );
     }
     List<TDCell> cells = [];

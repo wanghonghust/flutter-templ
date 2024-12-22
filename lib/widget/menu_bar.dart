@@ -5,11 +5,11 @@ import 'package:get/get.dart';
 import 'package:kms/models/page.dart';
 import 'package:kms/page_controller.dart';
 import 'package:kms/pages/setting/index.dart';
-import 'package:kms/utils/modal.dart';
+import 'package:kms/widget/dialog/index.dart';
 import 'package:sidebarx/sidebarx.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 
-class ExampleSidebarX extends StatelessWidget{
+class ExampleSidebarX extends StatelessWidget {
   const ExampleSidebarX({
     super.key,
     required SidebarXController controller,
@@ -35,6 +35,8 @@ class ExampleSidebarX extends StatelessWidget{
     return SidebarX(
       controller: _controller,
       showToggleButton: isDesktop,
+      collapseIcon: Icons.menu_open,
+      extendIcon: Icons.menu,
       theme: SidebarXTheme(
         margin: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -128,7 +130,20 @@ class ExampleSidebarX extends StatelessWidget{
               ],
             ),
             onPressed: () => {
-              showModal(context,SettingPage())
+              showDialog(
+                context: context,
+                builder: (BuildContext context) => CustomDialog(
+                  title: const Text(
+                    '设置',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  body: const SettingPage(),
+                  onConfirm: () {
+                    // 执行确认操作
+                  },
+                ),
+              )
             },
           ),
         );

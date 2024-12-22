@@ -156,7 +156,7 @@ class ThemeNotifier with ChangeNotifier {
 }
 
 var lightTheme = FlexThemeData.light(
-    scheme: FlexScheme.deepOrangeM3,
+    scheme: FlexScheme.indigoM3,
     subThemesData: const FlexSubThemesData(
         interactionEffects: true,
         tintedDisabledControls: true,
@@ -186,7 +186,7 @@ var lightTheme = FlexThemeData.light(
     cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
     fontFamily: "HarmonyOS Sans Regular");
 var darkTheme = FlexThemeData.dark(
-    scheme: FlexScheme.deepOrangeM3,
+    scheme: FlexScheme.indigoM3,
     // scaffoldBackground: const Color.fromARGB(255, 27, 27, 31),
     // appBarBackground: const Color.fromARGB(255, 39, 40, 48),
 

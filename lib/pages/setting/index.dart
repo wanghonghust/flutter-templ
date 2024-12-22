@@ -18,8 +18,10 @@ class _SettingPageState extends State<SettingPage> {
     bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: !isDesktop  ? AppBar(title: const Text("设置")):null,
       body: Container(
+        decoration: BoxDecoration(color: Colors.transparent),
           child: ListView(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
@@ -33,7 +35,7 @@ class _SettingPageState extends State<SettingPage> {
                     title: const Text('主题设置'),
                     subtitle: Row(children: [
                       Container(
-                        width: 300,
+                        width: 320,
                         child: SegmentedButton<ThemeMode>(
                           selected: {themeNotifier.themeMode},
                           segments: const <ButtonSegment<ThemeMode>>[
