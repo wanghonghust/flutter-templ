@@ -21,7 +21,6 @@ dependencies:
   better_player: ^0.0.84
   path_provider: ^2.1.5
   file_picker: ^8.1.3
-  flutter_quill: ^10.8.5
   persistent_bottom_nav_bar: ^6.2.1
   animated_bottom_navigation_bar: ^1.3.3
   flutter_highlight: ^0.7.0
@@ -34,6 +33,8 @@ dependencies:
   uuid: ^4.5.1
   flutter_joystick: ^0.2.1
   scrollable_positioned_list: ^0.3.8
+  appflowy_editor: ^4.0.0
+  pluto_layout: ^1.0.0
 
 dev_dependencies:
   flutter_test:

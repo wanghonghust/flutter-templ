@@ -209,7 +209,6 @@ abstract class MarkdownWidget extends StatefulWidget {
   const MarkdownWidget({
     super.key,
     required this.data,
-    this.selectable = false,
     this.styleSheet,
     this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
     this.syntaxHighlighter,
@@ -236,11 +235,6 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// The Markdown to display.
   final String data;
 
-  /// If true, the text is selectable.
-  ///
-  /// Defaults to false.
-  final bool selectable;
-
   /// The styles to use when displaying the Markdown.
   ///
   /// If null, the styles are inferred from the current [Theme].
@@ -259,10 +253,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// Called when the user taps a link.
   final MarkdownTapLinkCallback? onTapLink;
 
-  /// Called when the user changes selection when [selectable] is set to true.
   final MarkdownOnSelectionChangedCallback? onSelectionChanged;
 
-  /// Default tap handler used when [selectable] is set to true
   final VoidCallback? onTapText;
 
   /// The base directory holding images referenced by Img tags with local or network file paths.
@@ -395,7 +387,6 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
     // create a widget tree based on the elements.
     final MarkdownBuilder builder = MarkdownBuilder(
       delegate: this,
-      selectable: widget.selectable,
       styleSheet: styleSheet,
       imageDirectory: widget.imageDirectory,
       imageBuilder: widget.imageBuilder,
@@ -467,7 +458,6 @@ class MarkdownBody extends MarkdownWidget {
   const MarkdownBody({
     super.key,
     required super.data,
-    super.selectable,
     super.styleSheet,
     super.styleSheetTheme = null,
     super.syntaxHighlighter,
@@ -525,7 +515,6 @@ class Markdown extends MarkdownWidget {
   const Markdown({
     super.key,
     required super.data,
-    super.selectable,
     super.styleSheet,
     super.styleSheetTheme = null,
     super.syntaxHighlighter,
@@ -542,6 +531,7 @@ class Markdown extends MarkdownWidget {
     super.builders,
     super.paddingBuilders,
     super.listItemCrossAxisAlignment,
+    this.selectable = false,
     this.padding = const EdgeInsets.all(16.0),
     this.controller,
     this.physics,
@@ -550,6 +540,9 @@ class Markdown extends MarkdownWidget {
     super.tocWith = 150,
     super.softLineBreak,
   });
+
+  /// Whether the text can be selected. Defaults to `false`.
+  final bool selectable;
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;
@@ -587,34 +580,43 @@ class Markdown extends MarkdownWidget {
         ItemPositionsListener.create();
     final ItemScrollController scrollController = ItemScrollController();
     return Row(
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                  child: ScrollablePositionedList.builder(
-                      padding: padding,
-                      itemScrollController: scrollController,
-                      itemPositionsListener: itemPositionsListener,
-                      physics: physics,
-                      shrinkWrap: shrinkWrap,
-                      itemCount: children!.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return children[index];
-                      })),
+      children: [
+        Expanded(
+            child: selectable
+                ? SelectionArea(
+                    child: ScrollablePositionedList.builder(
+                        padding: padding,
+                        itemScrollController: scrollController,
+                        itemPositionsListener: itemPositionsListener,
+                        physics: physics,
+                        shrinkWrap: shrinkWrap,
+                        itemCount: children!.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return children[index];
+                        }))
+                : ScrollablePositionedList.builder(
+                    padding: padding,
+                    itemScrollController: scrollController,
+                    itemPositionsListener: itemPositionsListener,
+                    physics: physics,
+                    shrinkWrap: shrinkWrap,
+                    itemCount: children!.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return children[index];
+                    })),
+        if (showToc && tocList!.isNotEmpty)
+          Container(
+            width: tocWith,
+            margin: padding,
+            child: TocView(
+              scrollController: scrollController,
+              itemPositionsListener: itemPositionsListener,
+              tocList: tocList,
+              tocWith: tocWith,
             ),
-            if (showToc && tocList!.isNotEmpty)
-              Container(
-                width: tocWith,
-                margin: padding,
-                child: TocView(
-                  scrollController: scrollController,
-                  itemPositionsListener: itemPositionsListener,
-                  tocList: tocList,
-                  tocWith: tocWith,
-                ),
-              )
-          ],
-        );
+          )
+      ],
+    );
   }
 }
 

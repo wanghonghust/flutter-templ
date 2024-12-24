@@ -4,10 +4,12 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:kms/pages/key_manager/asymmetric.dart';
+import 'package:kms/pages/markdown_editor/folder_tree.dart';
 import 'package:kms/pages/markdown_editor/hilighter.dart';
 import 'package:kms/utils/index.dart';
 import 'package:kms/widget/custom_tree/custom_tree.dart';
 import 'package:multi_split_view/multi_split_view.dart';
+import 'package:pluto_layout/pluto_layout.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kms/widget/custom_markdown/custom_markdown.dart';
 
@@ -88,42 +90,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
           data: 'blue'),
       Area(
           flex: 1,
-          builder: (context, area) => Markdown(
-                data: content,
-                selectable: true,
-                shrinkWrap: true,
-                onTapLink: (text, href, title) async {
-                  Uri url = Uri.parse(href!);
-                  if (await launchUrl(url)) {}
-                },
-                imageBuilder: (uri, title, alt) {
-                  return InkWell(
-                    onTap: () {
-                      final imageProvider = Image.network(uri.toString()).image;
-                      showImageViewer(context, imageProvider,
-                          onViewerDismissed: () {});
-                    },
-                    child: Image.network(uri.toString()),
-                  );
-                },
-                styleSheet: MarkdownStyleSheet(
-                  horizontalRuleDecoration: BoxDecoration(
-                      border: Border.all(
-                          color: Theme.of(context).dividerColor, width: 0.5)),
-                  codeblockDecoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(8))),
-                  blockquoteDecoration: BoxDecoration(
-                      color: Theme.of(context).hoverColor,
-                      border: Border(
-                          left: BorderSide(
-                              color: Theme.of(context).primaryColor, width: 4)),
-                      borderRadius: const BorderRadius.all(Radius.circular(4))),
-                ),
-                builders: {
-                  'pre': PreElementBuilder(context),
-                  'code': CodeElementBuilder(context)
-                },
-              ),
+          builder: (context, area) => _buildMarkdown(context),
           data: 'green')
     ]);
 
@@ -148,5 +115,135 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
         child: const Icon(Icons.file_open),
       ),
     );
+  }
+
+  Widget _buildMarkdown(BuildContext context) {
+    return Markdown(
+      data: content,
+      selectable: true,
+      shrinkWrap: true,
+      onTapLink: (text, href, title) async {
+        Uri url = Uri.parse(href!);
+        if (await launchUrl(url)) {}
+      },
+      imageBuilder: (uri, title, alt) {
+        return InkWell(
+          onTap: () {
+            final imageProvider = Image.network(uri.toString()).image;
+            showImageViewer(context, imageProvider, onViewerDismissed: () {});
+          },
+          child: Image.network(uri.toString()),
+        );
+      },
+      styleSheet: MarkdownStyleSheet(
+        horizontalRuleDecoration: BoxDecoration(
+            border:
+                Border.all(color: Theme.of(context).dividerColor, width: 0.5)),
+        codeblockDecoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(8))),
+        blockquoteDecoration: BoxDecoration(
+            color: Theme.of(context).hoverColor,
+            border: Border(
+                left: BorderSide(
+                    color: Theme.of(context).primaryColor, width: 4)),
+            borderRadius: const BorderRadius.all(Radius.circular(4))),
+      ),
+      builders: {
+        'pre': PreElementBuilder(context),
+        'code': CodeElementBuilder(context)
+      },
+    );
+  }
+}
+
+class DemoPage extends StatefulWidget {
+  const DemoPage({super.key});
+
+  @override
+  State<DemoPage> createState() => _DemoPageState();
+}
+
+class _DemoPageState extends State<DemoPage> {
+  String content = "";
+  List<TreeNode<FileSystemEntity>> _nodes = [];
+
+  late int _index = 0;
+  
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: PlutoLayout(
+        body: PlutoLayoutContainer(
+          child: PlutoLayoutTabsOrChild(
+            child: SingleChildScrollView(child: Container()),
+          ),
+        ),
+        left: PlutoLayoutContainer(
+          child: PlutoLayoutTabs(
+            mode: PlutoLayoutTabMode.showSelected,
+            draggable: true,
+            tabViewSizeResolver: const PlutoLayoutTabViewSizeConstrains(
+              minSize: 100,
+            ),
+            items: [
+              PlutoLayoutTabItem(
+                id: "文件夹",
+                title: "文件夹",
+                sizeResolver: const PlutoLayoutTabItemSizeFlexible(0.7),
+                tabViewWidget: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: FolderTree()),
+              ),
+              PlutoLayoutTabItem(
+                id: "搜索",
+                title: "搜索",
+                sizeResolver: const PlutoLayoutTabItemSizeFlexible(0.7),
+                tabViewWidget: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(
+                      children: [
+                        Text("搜索结果:$_index"),
+                        IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _index++;
+                              });
+                            },
+                            icon: const Icon(Icons.search)),
+                      ],
+                    )),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class TopTab extends StatefulWidget {
+  const TopTab({required this.newTabResolver, super.key});
+
+  final PlutoLayoutActionInsertTabItemResolver newTabResolver;
+
+  @override
+  State<TopTab> createState() => _TopTabState();
+}
+
+class _TopTabState extends State<TopTab> {
+  @override
+  Widget build(BuildContext context) {
+    final PlutoLayoutEventStreamController? eventStreamController =
+        PlutoLayout.getEventStreamController(context);
+
+    return TextButton(
+        onPressed: () => eventStreamController?.add(
+              PlutoInsertTabItemEvent(
+                layoutId: PlutoLayoutId.body,
+                itemResolver: widget.newTabResolver,
+              ),
+            ),
+        child: Text("New"));
   }
 }

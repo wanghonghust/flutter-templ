@@ -13,7 +13,8 @@ class Asymmetric extends StatefulWidget {
   }
 }
 
-class AsymmetricPageState extends State<Asymmetric> {
+class AsymmetricPageState extends State<Asymmetric>
+    with SingleTickerProviderStateMixin {
   List<TreeNode<String>> _nodes = [];
   @override
   void initState() {
@@ -25,36 +26,36 @@ class AsymmetricPageState extends State<Asymmetric> {
         children: [
           TreeNode(
             label: const Text('src'),
-            icon: Icon(Icons.folder_open),
+            icon: const Icon(Icons.folder_open),
             children: [
               TreeNode(
                   label: const Text('main.js'),
                   value: 'main_js',
-                  icon: Icon(Icons.javascript),
+                  icon: const Icon(Icons.javascript),
                   isSelected: true),
               TreeNode(
                   label: const Text('app.js'),
                   value: 'app_js',
-                  icon: Icon(Icons.javascript)),
+                  icon: const Icon(Icons.javascript)),
               TreeNode(
                   label: const Text('styles.css'),
                   value: 'styles_css',
-                  icon: Icon(Icons.css)),
+                  icon: const Icon(Icons.css)),
             ],
           ),
           TreeNode(
             label: const Text('public'),
             value: 'public_folder',
-            icon: Icon(Icons.folder_open),
+            icon: const Icon(Icons.folder_open),
             children: [
               TreeNode(
                   label: const Text('index.html'),
                   value: 'index_html',
-                  icon: Icon(Icons.html)),
+                  icon: const Icon(Icons.html)),
               TreeNode(
                   label: const Text('favicon.ico'),
                   value: 'favicon',
-                  icon: Icon(Icons.image)),
+                  icon: const Icon(Icons.image)),
             ],
           ),
         ],
@@ -66,11 +67,11 @@ class AsymmetricPageState extends State<Asymmetric> {
           TreeNode(
               label: const Text('package.json'),
               value: 'package_json',
-              icon: Icon(Icons.settings)),
+              icon: const Icon(Icons.settings)),
           TreeNode(
               label: const Text('.gitignore'),
               value: 'gitignore',
-              icon: Icon(Icons.remove_red_eye)),
+              icon: const Icon(Icons.remove_red_eye)),
         ],
       ),
     ];
@@ -78,6 +79,7 @@ class AsymmetricPageState extends State<Asymmetric> {
 
   @override
   Widget build(BuildContext context) {
+    final TabController _tabController = TabController(length: 2, vsync: this);
     return Scaffold(
       body: ExpandableTheme(
         data: const ExpandableThemeData(
@@ -89,10 +91,18 @@ class AsymmetricPageState extends State<Asymmetric> {
           children: <Widget>[
             Card1(),
             Card2(),
-            Card3(),
-            SimpleTreeView(
-              nodes: _nodes,
-            )
+            TabBar(
+                controller: _tabController,
+                tabs: const [Text("Tree"), Text("Card")]),
+            SizedBox(
+                height: 500,
+                child: TabBarView(controller: _tabController, children: [
+                  SimpleTreeView(
+                    nodes: _nodes,
+                  ),
+                  Card3()
+                ])),
+            ElevatedButton(onPressed: () {}, child: Text("click"))
           ],
         ),
       ),

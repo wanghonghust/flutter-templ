@@ -42,7 +42,6 @@ class HeaderDelegate extends SliverPersistentHeaderDelegate {
 
 class TreeViewState<T> extends State<TreeView<T>> {
   late bool _isAllExpanded;
-  late bool _expandFirstRootNode;
 
   @override
   void initState() {
@@ -50,7 +49,6 @@ class TreeViewState<T> extends State<TreeView<T>> {
     _initializeNodes(widget.nodes, null);
     _updateAllNodesSelectionState();
     _isAllExpanded = false;
-    _expandFirstRootNode = widget.expandFirstRootNode;
   }
 
   /// Filters the tree nodes based on the provided filter function.

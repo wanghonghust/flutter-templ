@@ -100,7 +100,6 @@ class MarkdownBuilder implements md.NodeVisitor {
   /// Creates an object that builds a [Widget] tree from parsed Markdown.
   MarkdownBuilder({
     required this.delegate,
-    required this.selectable,
     required this.styleSheet,
     required this.imageDirectory,
     required this.imageBuilder,
@@ -117,11 +116,6 @@ class MarkdownBuilder implements md.NodeVisitor {
 
   /// A delegate that controls how link and `pre` elements behave.
   final MarkdownBuilderDelegate delegate;
-
-  /// If true, the text is selectable.
-  ///
-  /// Defaults to false.
-  final bool selectable;
 
   /// Defines which [TextStyle] objects to use for each type of element.
   final MarkdownStyleSheet styleSheet;
@@ -154,10 +148,8 @@ class MarkdownBuilder implements md.NodeVisitor {
   /// does not allow for intrinsic height measurements.
   final MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment;
 
-  /// Called when the user changes selection when [selectable] is set to true.
   final MarkdownOnSelectionChangedCallback? onSelectionChanged;
 
-  /// Default tap handler used when [selectable] is set to true
   final VoidCallback? onTapText;
 
   /// The soft line break is used to identify the spaces at the end of aline of
@@ -854,20 +846,11 @@ class MarkdownBuilder implements md.NodeVisitor {
         }
 
         // Add the new text widget to the list
-        if (selectable) {
-          mergedTexts.add(SelectableText.rich(
-            TextSpan(children: spans),
-            textScaler: styleSheet.textScaler,
-            textAlign: textAlign ?? TextAlign.start,
-            onTap: onTapText,
-          ));
-        } else {
-          mergedTexts.add(Text.rich(
-            child,
-            textScaler: styleSheet.textScaler,
-            textAlign: textAlign ?? TextAlign.start,
-          ));
-        }
+        mergedTexts.add(Text.rich(
+          child,
+          textScaler: styleSheet.textScaler,
+          textAlign: textAlign ?? TextAlign.start,
+        ));
       } else {
         // If no text spans were found, add the current widget to the list
         mergedTexts.add(child);
@@ -991,26 +974,13 @@ class MarkdownBuilder implements md.NodeVisitor {
   Widget _buildRichText(TextSpan? text, {TextAlign? textAlign, String? key}) {
     //Adding a unique key prevents the problem of using the same link handler for text spans with the same text
     final Key k = key == null ? UniqueKey() : Key(key);
-    if (selectable) {
-      return SelectableText.rich(
-        text!,
-        textScaler: styleSheet.textScaler,
-        textAlign: textAlign ?? TextAlign.start,
-        onSelectionChanged: onSelectionChanged != null
-            ? (TextSelection selection, SelectionChangedCause? cause) =>
-                onSelectionChanged!(text.text, selection, cause)
-            : null,
-        onTap: onTapText,
-        key: k,
-      );
-    } else {
-      return Text.rich(
-        text!,
-        textScaler: styleSheet.textScaler,
-        textAlign: textAlign ?? TextAlign.start,
-        key: k,
-      );
-    }
+
+    return Text.rich(
+      text!,
+      textScaler: styleSheet.textScaler,
+      textAlign: textAlign ?? TextAlign.start,
+      key: k,
+    );
   }
 }
 
