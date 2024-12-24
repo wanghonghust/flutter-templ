@@ -180,8 +180,9 @@ class _DemoPageState extends State<DemoPage> {
           ),
         ),
         left: PlutoLayoutContainer(
+          backgroundColor: Colors.transparent,
           child: PlutoLayoutTabs(
-            mode: PlutoLayoutTabMode.showSelected,
+            mode: PlutoLayoutTabMode.showOneMust,
             draggable: true,
             tabViewSizeResolver: const PlutoLayoutTabViewSizeConstrains(
               minSize: 100,
@@ -191,8 +192,8 @@ class _DemoPageState extends State<DemoPage> {
                 id: "文件夹",
                 title: "文件夹",
                 sizeResolver: const PlutoLayoutTabItemSizeFlexible(0.7),
-                tabViewWidget: Padding(
-                    padding: const EdgeInsets.all(15),
+                tabViewWidget: const Padding(
+                    padding: EdgeInsets.all(15),
                     child: FolderTree()),
               ),
               PlutoLayoutTabItem(

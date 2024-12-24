@@ -35,7 +35,7 @@ const List<PageInfo> pages = [
   PageInfo(icon: Icons.home, label: "主页", page: Home()),
   PageInfo(icon: Icons.vpn_key, label: "对称密钥", page: Symmetric()),
   PageInfo(icon: Icons.blur_on, label: "非对称密钥", page: Asymmetric()),
-  PageInfo(icon: Icons.api, label: "AaiKey", page: ApiKeyPage()),
+  PageInfo(icon: Icons.api, label: "AaiKey", page: ApiKeyPage(title: "asda",)),
   PageInfo(icon: Icons.settings, label: " 测试", page: TestPage()),
   PageInfo(icon: Icons.book, label: "编辑器", page: EditorPage()),
 ];

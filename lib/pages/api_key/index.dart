@@ -1,198 +1,197 @@
 import 'package:flutter/material.dart';
-import 'package:kms/widget/tab_container/index.dart';
-
-class HeaderDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-
-  HeaderDelegate({required this.child});
-
-  @override
-  Widget build(
-          BuildContext context, double shrinkOffset, bool overlapsContent) =>
-      child;
-
-  @override
-  double get maxExtent => 200;
-
-  @override
-  double get minExtent => 200;
-
-  @override
-  bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
-    return true;
-  }
-}
+import 'package:flutter/rendering.dart';
+import 'package:kms/pages/markdown_editor/index.dart';
+import 'package:kms/widget/tab_bar/inde.dart';
 
 class ApiKeyPage extends StatefulWidget {
-  const ApiKeyPage({super.key});
+  const ApiKeyPage({super.key, required this.title});
+  final String title;
 
   @override
-  State<ApiKeyPage> createState() => _PlutoGridExamplePageState();
+  State<ApiKeyPage> createState() => _ApiKeyPageState();
 }
 
-class _PlutoGridExamplePageState extends State<ApiKeyPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _controller;
+class _ApiKeyPageState extends State<ApiKeyPage> {
+  bool isScrollable = false;
+  bool showNextIcon = true;
+  bool showBackIcon = true;
+
+  // Leading icon
+  Widget? leading;
+
+  // Trailing icon
+  Widget? trailing;
+
+  // Sample data for tabs
+  List<TabData> tabs = [
+    TabData(
+      index: 1,
+      title: const Tab(
+        child: Text('Tab 1'),
+      ),
+      content: const Center(child: Text('Content for Tab 1')),
+    ),
+    TabData(
+      index: 2,
+      title: const Tab(
+        child: Text('Tab 2'),
+      ),
+      content: MarkdownEditor(),
+    ),
+    // Add more tabs as needed
+  ];
+
   @override
   void initState() {
     super.initState();
-    _controller = TabController(vsync: this, length: 4);
-    _controller.addListener(() {
-      print("Tab index: ${_controller.index}");
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-    
   }
 
   @override
   Widget build(BuildContext context) {
-    
     return Container(
-      decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.5)),
-      child: TabContainer(
-      controller: _controller,
-      borderRadius: BorderRadius.zero,
-      tabBorderRadius: const BorderRadius.all(Radius.circular(20)),
-      color: Theme.of(context).scaffoldBackgroundColor,
-      duration: const Duration(seconds: 0),
-      selectedTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
-      unselectedTextStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black),
-      tabEdge: TabEdge.top,
-      
-      tabs: _getTabs3(context),
-      children: _getChildren3(context),
-    ),);
+      child: CustomTabWidget(child: Text("data"),),
+    );
   }
 
-  List<Widget> _getTabs3(BuildContext context) => <Widget>[
-        const Icon(
-          Icons.info,
-        ),
-        const Icon(
-          Icons.text_snippet,
-        ),
-        const Icon(
-          Icons.person,
-        ),
-        const Icon(
-          Icons.settings,
-        ),
-      ];
-  List<Widget> _getChildren3(BuildContext context) => <Widget>[
-        Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Info', style: Theme.of(context).textTheme.headlineSmall),
-            const Text(
-              'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam non ex ac metus facilisis pulvinar. In id nulla tellus. Donec vehicula iaculis lacinia. Fusce tincidunt viverra nisi non ultrices. Donec accumsan metus sed purus ullamcorper tincidunt. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.',
-            ),
-          ],
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Documents', style: Theme.of(context).textTheme.headlineSmall),
-            const Spacer(flex: 2),
-            const Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Divider(thickness: 1),
-                  Padding(
-                    padding: EdgeInsets.only(left: 10.0),
-                    child: Text('Document 1'),
-                  ),
-                  Divider(thickness: 1),
-                  Padding(
-                    padding: EdgeInsets.only(left: 10.0),
-                    child: Text('Document 2'),
-                  ),
-                  Divider(thickness: 1),
-                  Padding(
-                    padding: EdgeInsets.only(left: 10.0),
-                    child: Text('Document 3'),
-                  ),
-                  Divider(thickness: 1),
-                ],
+  void addTab() {
+    setState(() {
+      var tabNumber = tabs.length + 1;
+      tabs.add(
+        TabData(
+          index: tabNumber,
+          title: Tab(
+            child: Text('Tab $tabNumber'),
+          ),
+          content: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Dynamic Tab $tabNumber'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => removeTab(tabNumber - 1),
+                child: const Text('Remove this Tab'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Profile', style: Theme.of(context).textTheme.headlineSmall),
-            const Spacer(flex: 3),
-            const Expanded(
-              flex: 3,
-              child: Row(
-                children: [
-                  Flexible(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('username:'),
-                        Text('email:'),
-                        Text('birthday:'),
-                      ],
-                    ),
-                  ),
-                  Spacer(),
-                  Flexible(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('John Doe'),
-                        Text('john.doe@email.com'),
-                        Text('1/1/1985'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-          ],
+      );
+    });
+  }
+
+  void removeTab(int id) {
+    setState(() {
+      tabs.removeAt(id);
+    });
+  }
+
+  void addLeadingWidget() {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+          'Adding Icon button Widget \nYou can add any customized widget)'),
+    ));
+
+    setState(() {
+      leading = Tooltip(
+        message: 'Add your desired Leading widget here',
+        child: IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.more_horiz_rounded),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
-            const Spacer(flex: 1),
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  SwitchListTile(
-                    title: const Text('Darkmode'),
-                    value: false,
-                    onChanged: (v) {},
-                    secondary: const Icon(Icons.nightlight_outlined),
-                  ),
-                  SwitchListTile(
-                    title: const Text('Analytics'),
-                    value: false,
-                    onChanged: (v) {},
-                    secondary: const Icon(Icons.analytics),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      );
+    });
+  }
+
+  void removeLeadingWidget() {
+    setState(() {
+      leading = null;
+    });
+  }
+
+  void addTrailingWidget() {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+          'Adding Icon button Widget \nYou can add any customized widget)'),
+    ));
+
+    setState(() {
+      trailing = Tooltip(
+        message: 'Add your desired Trailing widget here',
+        child: IconButton(
+          onPressed: () {},
+          icon: const Icon(Icons.more_horiz_rounded),
         ),
-      ];
+      );
+    });
+  }
+
+  void removeTrailingWidget() {
+    setState(() {
+      trailing = null;
+    });
+  }
+}
+
+
+class CustomTabRenderBox extends RenderObject  with MultiChildRenderObjectWidget {
+  double tabWidth = 100.0;
+  double tabHeight = 50.0;
+  Color tabColor = Colors.blue;
+
+
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final paint = Paint()
+      ..color = tabColor
+      ..style = PaintingStyle.fill;
+    context.canvas.drawRect(
+      Rect.fromLTWH(offset.dx, offset.dy, tabWidth, tabHeight),
+      paint,
+    );
+  }
+
+  
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    // TODO: implement createRenderObject
+    throw UnimplementedError();
+  }
+  
+  @override
+  void debugAssertDoesMeetConstraints() {
+    // TODO: implement debugAssertDoesMeetConstraints
+  }
+  
+  @override
+  // TODO: implement paintBounds
+  Rect get paintBounds => throw UnimplementedError();
+  
+  @override
+  void performLayout() {
+    // TODO: implement performLayout
+  }
+  
+  @override
+  void performResize() {
+    // TODO: implement performResize
+  }
+  
+  @override
+  // TODO: implement semanticBounds
+  Rect get semanticBounds => throw UnimplementedError();
+}
+
+class CustomTabWidget extends SingleChildRenderObjectWidget {
+  CustomTabWidget({Widget? child})
+      : super(child: child);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return CustomTabRenderBox();
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, RenderObject renderObject) {
+    // Update the render object here if necessary
+  }
 }

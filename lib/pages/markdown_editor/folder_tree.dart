@@ -21,52 +21,43 @@ class FolderTree extends StatefulWidget {
 
 class _FolderTreeState extends State<FolderTree> {
   List<TreeNode<FileSystemEntity>> _nodes = [];
+  List<String> _tabKeys = [];
   final _treeViewKey = GlobalKey<TreeViewState<FileSystemEntity>>();
   void _onSelectionChanged(List<FileSystemEntity?> selectedValues) {
     print('Selected node values: $selectedValues');
   }
 
-
   void _newTab(BuildContext context, String id, String title, Widget widget) {
-    final PlutoLayoutEventStreamController? eventStreamController =
+    late PlutoLayoutEventStreamController? eventStreamController =
         PlutoLayout.getEventStreamController(context);
-    bool isExist = false;
+    if(_tabKeys.contains(id)){
+      return;
+    }else{
+      _tabKeys.add(id);
+    }
     PlutoInsertTabItemResult resolver(
         {required List<PlutoLayoutTabItem> items}) {
-          isExist = items.any((item) {
-            String id0 = item.id as String;
-            return id0 == id;
-          });
-          print("isExist: $isExist");
-      
       return PlutoInsertTabItemResult(
         item: PlutoLayoutTabItem(
           id: id,
           title: title,
-          enabled: false,
+          enabled: true,
           showRemoveButton: true,
           tabViewWidget: widget,
         ),
       );
     }
-    if (!isExist) {
-      
-      eventStreamController?.add(PlutoInsertTabItemEvent(
-        layoutId: PlutoLayoutId.body,
-        itemResolver: resolver,
-      ));
-    }
+    
+    eventStreamController?.add(PlutoInsertTabItemEvent(
+      layoutId: PlutoLayoutId.body,
+      itemResolver: resolver,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-        decoration: BoxDecoration(
-            border: Border(
-                top:
-                    BorderSide(width: 1, color: Theme.of(context).dividerColor),
-                bottom: BorderSide(
-                    width: 1, color: Theme.of(context).dividerColor))),
+        alignment: Alignment.topCenter,
         child: _nodes.isEmpty
             ? IconButton(
                 onPressed: () async {
