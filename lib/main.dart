@@ -44,12 +44,13 @@ class _MyAppState extends State<MyApp> {
                     print(item);
                   },
                   icon: const Icon(Icons.search)),
-              Expanded(
+              Container(
+                  height: 32,
                   child: CustomTabBar(
-                tabController: tabController,
-                tabHeight: 32,
-                tabWidth: 80,
-              ))
+                    tabController: tabController,
+                    tabHeight: 32,
+                    tabWidth: 80,
+                  ))
             ],
           ),
         ),
@@ -163,6 +164,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
   late ValueNotifier<int> pressedIndex;
   late ValueNotifier<int> hoveredIconIndex;
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -183,6 +185,8 @@ class _CustomTabBarState extends State<CustomTabBar> {
     _tabController.removeListener(() {});
     hoveredIndex.dispose();
     pressedIndex.dispose();
+    hoveredIconIndex.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -214,22 +218,22 @@ class _CustomTabBarState extends State<CustomTabBar> {
       if (closeIconRect.contains(position)) {
         setState(() {
           hoveredIconIndex.value = i;
-          print("on close button ,hoveredIconIndex: $i");
+          // print("on close button ,hoveredIconIndex: $i");
         });
         return;
       }
     }
     setState(() {
       hoveredIconIndex.value = -1;
-      print("hoveredIconIndex: ${hoveredIconIndex.value}");
+      // print("hoveredIconIndex: ${hoveredIconIndex.value}");
     });
   }
 
   void _onTapDown(TapDownDetails details) {
     for (int i = 0; i < _tabController.items.length; i++) {
       double startX = i * widget.tabWidth!;
-      Rect buttonRect =
-          Rect.fromLTWH(startX, 0, widget.tabWidth!, widget.tabHeight!);
+      Rect buttonRect = Rect.fromLTWH(
+          startX, 0, widget.tabWidth! - widget.tabHeight!, widget.tabHeight!);
       if (buttonRect.contains(details.localPosition)) {
         setState(() {
           pressedIndex.value = i;
@@ -258,31 +262,39 @@ class _CustomTabBarState extends State<CustomTabBar> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: () => pressedIndex.value = -1,
-      child: MouseRegion(
-        onHover: (event) {
-          _updateHoveredIndex(event.localPosition);
-          _updateHoveredIconIndex(event.localPosition);
-        },
-        onExit: (event) => _updateHoveredIndex(event.localPosition),
-        child: CustomPaint(
-          size: Size(_tabController.items.length * widget.tabWidth!,
-              widget.tabHeight!), // 设置画布大小
-          painter: ButtonRowPainter(
-              selectedIndex: _tabController.selectedIndex,
-              items: _tabController.items,
-              backgroundColor: Colors.white,
-              tabWidth: widget.tabWidth!,
-              tabHeight: widget.tabHeight!,
-              borderRadius: const BorderRadius.all(Radius.circular(10)),
-              hoveredIndex: hoveredIndex.value,
-              pressedIndex: pressedIndex.value,
-              hoveredIconIndex: hoveredIconIndex.value),
-        ),
-      ),
-    );
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: () => pressedIndex.value = -1,
+        child: MouseRegion(
+          onHover: (event) {
+            _updateHoveredIndex(event.localPosition);
+            _updateHoveredIconIndex(event.localPosition);
+          },
+          onExit: (event) => _updateHoveredIndex(event.localPosition),
+          child: Scrollbar(
+            thumbVisibility: true,
+            controller: _scrollController,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              controller: _scrollController,
+              child: CustomPaint(
+                size: Size(_tabController.items.length * widget.tabWidth!,
+                    widget.tabHeight!), // 设置画布大小
+                painter: ButtonRowPainter(
+                    selectedIndex: _tabController.selectedIndex,
+                    items: _tabController.items,
+                    backgroundColor: Colors.white,
+                    tabWidth: widget.tabWidth!,
+                    tabHeight: widget.tabHeight!,
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    hoveredIndex: hoveredIndex.value,
+                    pressedIndex: pressedIndex.value,
+                    hoveredIconIndex: hoveredIconIndex.value),
+              ),
+            ),
+          ),
+        ));
   }
 }
 
@@ -343,11 +355,12 @@ class ButtonRowPainter extends CustomPainter {
 
   void _drawCloseButton(
       Canvas canvas, Offset offset, int index, Color color, Color fillColor) {
+    print("drawCloseButton:${hoveredIconIndex == index}");
     canvas.drawCircle(
         offset + Offset(tabWidth - tabHeight / 2, tabHeight / 2),
         10,
         Paint()
-          ..color = hoveredIconIndex == hoveredIndex
+          ..color = hoveredIndex == index
               ? const Color.fromARGB(255, 79, 125, 184)
               : fillColor);
 
