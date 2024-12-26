@@ -1,404 +1,201 @@
-// Copyright (c) 2023 Ali Haider. All rights reserved.
-// Use of this source code is governed by MIT License that can be
-// found in the LICENSE file.
-
-
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
-class TabData {
-  final int index;
-  final Tab title;
-  final Widget content;
+class SimpleContainer extends StatefulWidget {
+  final Widget? child;
+  final double? width;
+  final double? height;
+  final Color? backgroundColor;
+  final Color? hoverColor;
+  final BorderRadius? borderRadius;
+  final Alignment? alignment;
 
-  TabData({required this.index, required this.title, required this.content});
-}
-
-/// Defines where the Tab indicator animation moves to when new Tab is added.
-///
-///
-enum MoveToTab {
-  /// The [idol] indicator will remain on current Tab when new Tab is added.
-  idol,
-
-  /// The [next] indicator will move to next Tab when new Tab is added.
-  next,
-
-  /// The [previous] indicator will move to previous Tab  when new Tab is added.
-  previous,
-
-  /// The [first] indicator will move to first Tab when new Tab is added.
-  first,
-
-  /// The [last] indicator will move to the Last Tab when new Tab is added.
-  last,
-}
-
-/// Dynamic Tabs.
-class DynamicTabBarWidget extends TabBar {
-  /// List of Tabs.
-  ///
-  /// TabData contains [index] of the tab and the title which is extension of [TabBar] header.
-  /// and the [content] is the extension of [TabBarView] so all the page content is displayed in this section
-  ///
-  ///
-  final List<TabData> dynamicTabs;
-  final Function(TabController) onTabControllerUpdated;
-  final Function(int?)? onTabChanged;
-
-  /// Defines where the Tab indicator animation moves to when new Tab is added.
-  ///
-  /// TabData contains two states at the moment [IDOL] and [LAST]
-  ///
-  final MoveToTab? onAddTabMoveTo;
-
-  /// Tab indicator animation moves to given Index when new Tab is added.
-  ///
-  /// If [onAddTabMoveTo] has some value, then this property is ignored.
-  ///
-  /// After using this if needed make it [null] to avoid conflicts with [onAddTabMoveTo]
-  ///
-  /// example: tabs.length - 1
-  final int? onAddTabMoveToIndex;
-
-  /// The back icon of the TabBar when [isScrollable] is true.
-  ///
-  /// If this parameter is null, then the default back icon is used.
-  ///
-  /// If [isScrollable] is false, this property is ignored.
-  final Widget? backIcon;
-
-  /// The forward icon of the TabBar when [isScrollable] is true.
-  ///
-  /// If this parameter is null, then the default forward icon is used.
-  ///
-  /// If [isScrollable] is false, this property is ignored.
-  final Widget? nextIcon;
-
-  /// The showBackIcon property of DynamicTabBarWidget is used when [isScrollable] is true.
-  ///
-  /// If this parameter is null, then the default value is [true].
-  ///
-  /// If [isScrollable] is false, this property is ignored.
-  final bool? showBackIcon;
-
-  /// The showNextIcon property of DynamicTabBarWidget is used when [isScrollable] is true.
-  ///
-  /// If this parameter is null, then the default value is [true].
-  ///
-  /// If [isScrollable] is false, this property is ignored.
-  final bool? showNextIcon;
-
-  /// The leading property is used to add custom leading widget in TabBar.
-  ///
-  /// By default [leading] widget is null.
-  ///
-  final Widget? leading;
-
-  /// The leading property is used to add custom trailing widget in TabBar.
-  ///
-  /// By default [trailing] widget is null.
-  ///
-  final Widget? trailing;
-
-  /// The physics property is used to set the physics of TabBarView.
-  final ScrollPhysics? physicsTabBarView;
-
-  /// The dragStartBehavior property is used to set the dragStartBehavior of TabBarView.
-  ///
-  /// By default [dragStartBehavior] is DragStartBehavior.start.
-  final DragStartBehavior dragStartBehaviorTabBarView;
-
-  /// The clipBehavior property is used to set the clipBehavior of TabBarView.
-  ///
-  /// By default [clipBehavior] is Clip.hardEdge.
-  final double viewportFractionTabBarView;
-
-  /// The clipBehavior property is used to set the clipBehavior of TabBarView.
-  ///
-  /// By default [clipBehavior] is Clip.hardEdge.
-  final Clip clipBehaviorTabBarView;
-
-  DynamicTabBarWidget({
+  const SimpleContainer({
     super.key,
-    required this.dynamicTabs,
-    required this.onTabControllerUpdated,
-    this.onTabChanged,
-    this.onAddTabMoveTo,
-    this.onAddTabMoveToIndex,
-    super.isScrollable,
-    this.backIcon,
-    this.nextIcon,
-    this.showBackIcon = true,
-    this.showNextIcon = true,
-    this.leading,
-    this.trailing,
-    // Default Tab properties :---------------------------------------
-    super.padding,
-    super.indicatorColor,
-    super.automaticIndicatorColorAdjustment = true,
-    super.indicatorWeight = 2.0,
-    super.indicatorPadding = EdgeInsets.zero,
-    super.indicator,
-    super.indicatorSize,
-    super.dividerColor,
-    super.dividerHeight,
-    super.labelColor,
-    super.labelStyle,
-    super.labelPadding,
-    super.unselectedLabelColor,
-    super.unselectedLabelStyle,
-    super.dragStartBehavior = DragStartBehavior.start,
-    super.overlayColor,
-    super.mouseCursor,
-    super.enableFeedback,
-    super.onTap,
-    super.physics,
-    super.splashFactory,
-    super.splashBorderRadius,
-    super.tabAlignment,
-    // Default TabBarView properties :---------------------------------------
-    this.physicsTabBarView,
-    this.dragStartBehaviorTabBarView = DragStartBehavior.start,
-    this.viewportFractionTabBarView = 1.0,
-    this.clipBehaviorTabBarView = Clip.hardEdge,
-  }) : super(tabs: []);
+    this.width,
+    this.height,
+    this.backgroundColor,
+    this.hoverColor,
+    this.borderRadius,
+    this.child,
+    this.alignment,
+  });
 
   @override
-  // ignore: library_private_types_in_public_api
-  _DynamicTabBarWidgetState createState() => _DynamicTabBarWidgetState();
+  State<SimpleContainer> createState() => _SimpleContainerState();
 }
 
-class _DynamicTabBarWidgetState extends State<DynamicTabBarWidget>
-    with TickerProviderStateMixin {
-  // Tab Controller
-  TabController? _tabController;
-
-  int activeTab = 0;
+class _SimpleContainerState extends State<SimpleContainer>
+    with SingleTickerProviderStateMixin {
+  late ValueNotifier<bool> _isHovered;
+  late AnimationController _controller;
+  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
     super.initState();
-    _tabController = getTabController(initialIndex: activeTab);
-  }
+    _isHovered = ValueNotifier<bool>(false);
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    _tabController =
-        getTabController(initialIndex: widget.dynamicTabs.length - 1);
-    if (_tabController != null) {
-      widget.onTabControllerUpdated.call(_tabController!);
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant DynamicTabBarWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.dynamicTabs.isEmpty) {
-      return;
-    }
-
-    if (_tabController?.length != widget.dynamicTabs.length) {
-      var activeTabIndex = getActiveTab();
-      if (activeTabIndex >= widget.dynamicTabs.length) {
-        activeTabIndex = widget.dynamicTabs.length - 1;
-      }
-      _tabController = getTabController(initialIndex: activeTabIndex);
-
-      var tabIndex = widget.onAddTabMoveToIndex ??
-          getOnAddMoveToTab(widget.onAddTabMoveTo);
-
-      if (tabIndex != null) {
-        Future.delayed(const Duration(milliseconds: 50), () {
-          _tabController?.animateTo(
-            tabIndex,
-          );
-          setState(() {
-            activeTab = tabIndex;
-          });
-        });
-      }
-    } else {
-      // debugPrint('NO Tab controller updated');
-    }
-
-    if (_tabController != null) {
-      widget.onTabControllerUpdated.call(_tabController!);
-    }
-  }
-
-  TabController getTabController({int initialIndex = 0}) {
-    if (initialIndex >= widget.dynamicTabs.length) {
-      initialIndex = widget.dynamicTabs.length - 1;
-    }
-    return TabController(
-      initialIndex: initialIndex,
-      length: widget.dynamicTabs.length,
+    // 初始化 AnimationController
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
       vsync: this,
-    )..addListener(() {
-        setState(() {
-          activeTab = _tabController?.index ?? 0;
-          if (_tabController?.indexIsChanging == true) {
-            widget.onTabChanged!(_tabController?.index);
-          }
-        });
-      });
-  }
+    );
 
-  int getActiveTab() {
-    // when there are No tabs
-    if (activeTab == 0 && widget.dynamicTabs.isEmpty) {
-      return 0;
-    }
-    if (activeTab == widget.dynamicTabs.length) {
-      return widget.dynamicTabs.length - 1;
-    }
-    if (activeTab < widget.dynamicTabs.length) {
-      return activeTab;
-    }
-    return widget.dynamicTabs.length;
-  }
-
-  // ignore: body_might_complete_normally_nullable
-  int? getOnAddMoveToTab(MoveToTab? moveToTab) {
-    switch (moveToTab) {
-      case MoveToTab.next:
-        return activeTab + 1;
-
-      case MoveToTab.previous:
-        return activeTab > 0 ? activeTab - 1 : activeTab;
-
-      case MoveToTab.first:
-        return 0;
-
-      case MoveToTab.last:
-        return widget.dynamicTabs.length - 1;
-
-      case MoveToTab.idol:
-        return null;
-
-      case null:
-        // move to Last Tab
-        return widget.dynamicTabs.length - 1;
-    }
+    // 创建颜色动画
+    _colorAnimation = ColorTween(
+      begin: widget.backgroundColor,
+      end: widget.hoverColor ?? widget.backgroundColor ?? Colors.transparent,
+    ).animate(_controller);
   }
 
   @override
   void dispose() {
-    _tabController?.dispose();
+    _isHovered.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // _tabController = getTabController(initialIndex: widget.dynamicTabs.length - 1);
-    return ScrollConfiguration(
-      behavior: ScrollConfiguration.of(context).copyWith(
-        dragDevices: {
-          PointerDeviceKind.touch,
-          PointerDeviceKind.mouse,
+    return MouseRegion(
+      onHover: (_) {
+        if (!_isHovered.value) {
+          _isHovered.value = true;
+          _controller.forward();
+        }
+      },
+      onExit: (_) {
+        if (_isHovered.value) {
+          _isHovered.value = false;
+          _controller.reverse();
+        }
+      },
+      cursor: SystemMouseCursors.click,
+      child: AnimatedBuilder(
+        animation: _colorAnimation,
+        builder: (context, child) {
+          return SimpleRenderObject(
+            alignment: widget.alignment,
+            width: widget.width,
+            height: widget.height,
+            backgroundColor: _colorAnimation.value,
+            borderRadius: widget.borderRadius,
+            child: widget.child,
+          );
         },
-      ),
-      child: DefaultTabController(
-        length: widget.dynamicTabs.length,
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Row(
-              children: [
-                if (widget.leading != null) widget.leading!,
-                if (widget.isScrollable == true && widget.showBackIcon == true)
-                  IconButton(
-                    icon: widget.backIcon ??
-                        const Icon(
-                          Icons.arrow_back_ios,
-                        ),
-                    onPressed: _moveToPreviousTab,
-                  ),
-                Expanded(
-                  child: widget.dynamicTabs.isEmpty
-                      ? const SizedBox()
-                      : TabBar(
-                          isScrollable: widget.isScrollable,
-                          controller: _tabController,
-                          tabs: widget.dynamicTabs
-                              .map((tab) => tab.title)
-                              .toList(),
-                          // Default Tab properties :---------------------------------------
-                          padding: widget.padding,
-                          indicatorColor: widget.indicatorColor,
-                          automaticIndicatorColorAdjustment:
-                              widget.automaticIndicatorColorAdjustment,
-                          indicatorWeight: widget.indicatorWeight,
-                          indicatorPadding: widget.indicatorPadding,
-                          indicator: widget.indicator,
-                          indicatorSize: widget.indicatorSize,
-                          dividerColor: widget.dividerColor,
-                          dividerHeight: widget.dividerHeight,
-                          labelColor: widget.labelColor,
-                          labelStyle: widget.labelStyle,
-                          labelPadding: widget.labelPadding,
-                          unselectedLabelColor: widget.unselectedLabelColor,
-                          unselectedLabelStyle: widget.unselectedLabelStyle,
-                          dragStartBehavior: widget.dragStartBehavior,
-                          overlayColor: widget.overlayColor,
-                          mouseCursor: widget.mouseCursor,
-                          enableFeedback: widget.enableFeedback,
-                          onTap: widget.onTap,
-                          physics: widget.physics,
-                          splashFactory: widget.splashFactory,
-                          splashBorderRadius: widget.splashBorderRadius,
-                          tabAlignment: widget.tabAlignment,
-                        ),
-                ),
-                if (widget.isScrollable == true && widget.showNextIcon == true)
-                  IconButton(
-                    icon: widget.nextIcon ??
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                        ),
-                    onPressed: _moveToNextTab,
-                  ),
-                if (widget.trailing != null) widget.trailing!,
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                physics: widget.physicsTabBarView,
-                dragStartBehavior: widget.dragStartBehaviorTabBarView,
-                viewportFraction: widget.viewportFractionTabBarView,
-                clipBehavior: widget.clipBehaviorTabBarView,
-                children: widget.dynamicTabs.map((tab) => tab.content).toList(),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
+}
 
-  _moveToNextTab() {
-    if (_tabController != null &&
-        _tabController!.index + 1 < _tabController!.length) {
-      _tabController!.animateTo(_tabController!.index + 1);
-    } else {
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      //   content: Text("Can't move forward"),
-      // ));
+class SimpleRenderObject extends SingleChildRenderObjectWidget {
+  final double? width;
+  final double? height;
+  final Color? backgroundColor;
+  final BorderRadius? borderRadius;
+  final Alignment? alignment;
+
+  const SimpleRenderObject({
+    super.key,
+    required super.child,
+    this.width,
+    this.height,
+    this.backgroundColor,
+    this.borderRadius,
+    this.alignment,
+  });
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return SimpleRenderBox(
+      alignment: alignment,
+      width: width,
+      height: height,
+      backgroundColor: backgroundColor,
+      borderRadius: borderRadius,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, covariant SimpleRenderBox renderObject) {
+    renderObject
+      ..width = width
+      ..height = height
+      ..backgroundColor = backgroundColor
+      ..borderRadius = borderRadius;
+  }
+}
+
+class SimpleRenderBox extends RenderBox
+    with RenderObjectWithChildMixin<RenderBox> {
+  double? width;
+  double? height;
+  Color? backgroundColor;
+  BorderRadius? borderRadius;
+  Color? hoverColor;
+  Alignment? alignment;
+
+  SimpleRenderBox({
+    this.width,
+    this.height,
+    this.borderRadius,
+    this.backgroundColor = Colors.blue,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  void performLayout() {
+    // 根据设置的宽高或者 constraints 来计算布局尺寸
+    final double finalWidth = width ?? constraints.constrainWidth();
+    final double finalHeight = height ?? constraints.constrainHeight();
+
+    size = constraints.constrain(Size(finalWidth, finalHeight));
+
+    // 布局子节点
+    if (child != null) {
+      child!.layout(BoxConstraints.loose(size), parentUsesSize: false);
     }
   }
 
-  _moveToPreviousTab() {
-    if (_tabController != null && _tabController!.index > 0) {
-      _tabController!.animateTo(_tabController!.index - 1);
-    } else {
-      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      //   content: Text("Can't go back"),
-      // ));
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    // 如果尺寸为 0，直接返回
+    if (size.isEmpty) return;
+
+    // 绘制背景色
+    final paint = Paint()
+      ..color = backgroundColor ?? Colors.transparent
+      ..style = PaintingStyle.fill;
+
+    final rect = offset & size;
+    final rrect = RRect.fromRectAndCorners(
+      rect,
+      topLeft: borderRadius?.topLeft ?? Radius.zero,
+      topRight: borderRadius?.topRight ?? Radius.zero,
+      bottomLeft: borderRadius?.bottomLeft ?? Radius.zero,
+      bottomRight: borderRadius?.bottomRight ?? Radius.zero,
+    );
+    context.canvas.drawShadow(
+      Path()..addRRect(rrect),
+      Colors.black.withOpacity(0.5),
+      10.0,
+      true,
+    );
+
+    context.canvas.drawRRect(rrect, paint);
+
+    // 绘制子组件
+    if (child != null) {
+      final childSize = child!.size;
+      final childOffset = Offset(
+        offset.dx +
+            (1 + (alignment?.x ?? 0)) * (size.width - childSize.width) / 2,
+        offset.dy +
+            (1 + (alignment?.y ?? 0)) * (size.height - childSize.height) / 2,
+      );
+      context.paintChild(child!, childOffset);
     }
   }
 }
