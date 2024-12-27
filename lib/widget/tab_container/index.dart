@@ -1,1533 +1,642 @@
-import 'dart:math';
-import 'dart:ui';
-
-import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
+import 'package:multi_split_view/multi_split_view.dart';
+import 'package:uuid/uuid.dart';
 
-/// Specifies which side the tabs will be on.
-enum TabEdge { left, top, right, bottom }
-
-@Deprecated('Use native TabController instead.')
-class TabContainerController extends ValueNotifier<int> {
-  TabContainerController(super.value);
+// 主应用类
+class TabVBarDemo extends StatefulWidget {
+  @override
+  _TabVBarDemoState createState() => _TabVBarDemoState();
 }
 
-extension on double {
-  bool isBetween(double num1, double num2) {
-    return num1 <= this && this <= num2;
-  }
-}
-
-class _TabMetrics {
-  _TabMetrics({
-    required this.count,
-    required this.range,
-    required this.minLength,
-    required this.maxLength,
-  });
-
-  final int count;
-  final double range;
-  final double minLength;
-  final double maxLength;
-
-  double get length => (range / count).clamp(minLength, maxLength);
-
-  double get totalLength => count * length;
-}
-
-class _TabViewport {
-  _TabViewport({
-    required this.parentSize,
-    required this.tabEdge,
-    required this.tabExtent,
-    required this.tabsStart,
-    required this.tabsEnd,
-  });
-
-  final Size parentSize;
-  final TabEdge tabEdge;
-  final double tabExtent;
-  final double tabsStart;
-  final double tabsEnd;
-
-  double get side => (tabEdge == TabEdge.top || tabEdge == TabEdge.bottom)
-      ? parentSize.width
-      : parentSize.height;
-
-  double get start => side * tabsStart;
-
-  double get end => side * tabsEnd;
-
-  double get range => end - start;
-
-  Size get size => (tabEdge == TabEdge.top || tabEdge == TabEdge.bottom)
-      ? Size(range, tabExtent)
-      : Size(tabExtent, range);
-
-  bool contains(double x, double y, double totalLength) {
-    final double minEnd = min(end, start + totalLength);
-    switch (tabEdge) {
-      case TabEdge.left:
-        if (x <= tabExtent && y.isBetween(start, minEnd)) {
-          return true;
-        }
-        break;
-      case TabEdge.top:
-        if (y <= tabExtent && x.isBetween(start, minEnd)) {
-          return true;
-        }
-        break;
-      case TabEdge.right:
-        if (x >= parentSize.width - tabExtent && y.isBetween(start, minEnd)) {
-          return true;
-        }
-        break;
-      case TabEdge.bottom:
-        if (y >= parentSize.height - tabExtent && x.isBetween(start, minEnd)) {
-          return true;
-        }
-        break;
-    }
-
-    return false;
-  }
-}
-
-/// Displays [children] in accordance with the tab selection.
-///
-/// Handles styling and animation and exposes control over tab selection through [TabController].
-class TabContainer extends StatefulWidget {
-  const TabContainer({
-    super.key,
-    this.duration = const Duration(milliseconds: 300),
-    this.curve = Curves.easeInOut,
-    this.controller,
-    this.children,
-    this.child,
-    required this.tabs,
-    this.childPadding = EdgeInsets.zero,
-    this.borderRadius = const BorderRadius.all(Radius.circular(12.0)),
-    this.tabBorderRadius = const BorderRadius.all(Radius.circular(12.0)),
-    this.tabExtent = 50.0,
-    this.tabEdge = TabEdge.top,
-    this.tabsStart = 0.0,
-    this.tabsEnd = 1.0,
-    this.tabMinLength = 0.0,
-    this.tabMaxLength = double.infinity,
-    this.color,
-    this.colors,
-    this.transitionBuilder,
-    this.semanticsConfiguration,
-    this.overrideTextProperties = false,
-    this.selectedTextStyle,
-    this.unselectedTextStyle,
-    this.textDirection,
-    this.enabled = true,
-    this.enableFeedback = true,
-    this.childDuration,
-    this.childCurve,
-    @Deprecated('Replaced with borderRadius and tabBorderRadius.') radius,
-    @Deprecated('String tabs should be replaced with Text widgets.')
-    isStringTabs,
-    @Deprecated('Use duration instead') tabDuration,
-    @Deprecated('Use curve instead') tabCurve,
-    @Deprecated('Use tabsStart instead') tabStart,
-    @Deprecated('Use tabsEnd instead') tabEnd,
-  })  : assert((children == null) != (child == null)),
-        assert((children != null) ? children.length == tabs.length : true),
-        assert(controller == null ? true : controller.length == tabs.length),
-        assert(!(color != null && colors != null)),
-        assert((colors ?? tabs).length == tabs.length),
-        assert(tabExtent >= 0),
-        assert(0.0 <= tabsStart && tabsStart < tabsEnd && tabsEnd <= 1.0),
-        assert(tabMinLength >= 0),
-        assert(tabMaxLength >= tabMinLength),
-        assert((selectedTextStyle == null) == (unselectedTextStyle == null));
-
-  /// Changes tab selection from elsewhere in your app.
-  ///
-  /// If you provide one, you must dispose of it.
-  final TabController? controller;
-
-  /// The list of children you want to tab through, in order.
-  ///
-  /// Must be equal in length to [tabs] and [colors] (if provided).
-  /// Must be null if [child] is supplied.
-  final List<Widget>? children;
-
-  /// Supply this if you want to control the child view yourself using [TabController].
-  ///
-  /// Must be equal in length to [tabs] and [colors] (if provided).
-  /// Must be null if [children] is supplied;
-  final Widget? child;
-
-  /// What will be displayed in each tab, in order.
-  ///
-  /// Must be equal in length to [children] and [colors] (if provided).
-  final List<Widget> tabs;
-
-  /// Sets the border radius surrounding the children
-  ///
-  /// Defaults to [BorderRadius.all(Radius.circular(12.0))]
-  final BorderRadius borderRadius;
-
-  /// Sets the border radius surrounding each tab
-  ///
-  /// Defaults to [BorderRadius.all(Radius.circular(12.0))]
-  final BorderRadius tabBorderRadius;
-
-  /// Sets the padding to be applied around all [children].
-  ///
-  /// Defaults to [EdgeInsets.zero].
-  final EdgeInsets childPadding;
-
-  /// Height of the tabs perpendicular to the [TabEdge].
-  ///
-  /// If the [tabs] are on the left/right then this will be the their visual width, otherwise it will be their visual height.
-  /// Defaults to 50.0.
-  final double tabExtent;
-
-  /// Determines which side the [tabs] will be on.
-  ///
-  /// Defaults to [TabEdge.top].
-  final TabEdge tabEdge;
-
-  /// Fraction of the way down the [TabEdge] that the first tab should begin.
-  ///
-  /// Defaults to 0.0.
-  final double tabsStart;
-
-  /// Fraction of the way down the [TabEdge] that the last tab should end.
-  ///
-  /// Defaults to 1.0.
-  final double tabsEnd;
-
-  /// Minimum width of each tab parallel to the [TabEdge].
-  ///
-  /// Defaults to 0.0
-  final double tabMinLength;
-
-  /// Maximum width of each tab parallel to the [TabEdge].
-  ///
-  /// Defaults to [double.infinity].
-  final double tabMaxLength;
-
-  /// The background color of this widget.
-  ///
-  /// Must not be set if [colors] is provided.
-  final Color? color;
-
-  /// The list of colors used for each tab, in order.
-  ///
-  /// The first color in the list will be the background color when tab 1 is selected and so on.
-  /// Must not be set if [color] is provided.
-  final List<Color>? colors;
-
-  /// Duration used by [controller] to animate tab changes.
-  ///
-  /// Defaults to Duration(milliseconds: 300).
-  final Duration duration;
-
-  /// Curve used by [controller] to animate tab changes.
-  ///
-  /// Defaults to Curves.easeInOut.
-  final Curve curve;
-
-  /// Duration of the child transition animation when the tab selection changes.
-  ///
-  /// Defaults to [duration].
-  /// Not used if [child] is supplied.
-  final Duration? childDuration;
-
-  /// The curve of the child transition animation when the tab selection changes.
-  ///
-  /// Defaults to [curve].
-  /// Not used if [child] is supplied.
-  final Curve? childCurve;
-
-  /// Sets the child transition animation when the tab selection changes.
-  ///
-  /// Defaults to [AnimatedSwitcher.defaultTransitionBuilder].
-  /// Not used if [child] is supplied.
-  final Widget Function(Widget, Animation<double>)? transitionBuilder;
-
-  /// The [SemanticsConfiguration] for the [RenderObject] of [TabContainer] itself, not its children or tabs.
-  /// You can completely control the accessibility behaviour by supplying this and wrapping your child and tabs in their own semantics.
-  ///
-  /// If non-null, this will be used instead of the default implementation.
-  final SemanticsConfiguration? semanticsConfiguration;
-
-  /// Set to true if each [Text] tabs given properties should be used instead of [TabContainer]s implicitly animated ones.
-  ///
-  /// Defaults to false.
-  final bool overrideTextProperties;
-
-  /// The [TextStyle] applied to the text of the currently selected tab.
-  ///
-  /// Must specify values for the same properties as [unselectedTextStyle].
-  /// Defaults to Theme.of(context).textTheme.bodyMedium.
-  final TextStyle? selectedTextStyle;
-
-  /// The [TextStyle] applied to the text of currently unselected tabs.
-  ///
-  /// Must specify values for the same properties as [selectedTextStyle].
-  /// Defaults to Theme.of(context).textTheme.bodyMedium.
-  final TextStyle? unselectedTextStyle;
-
-  /// The [TextDirection] for tabs and semantics.
-  ///
-  /// Defaults to Directionality.of(context).
-  final TextDirection? textDirection;
-
-  /// Whether tab selection changes on tap.
-  ///
-  /// Defaults to true.
-  final bool enabled;
-
-  /// Whether detected gestures on tabs should provide acoustic and/or haptic feedback.
-  ///
-  /// Defaults to true.
-  final bool enableFeedback;
-
+// 主应用状态类
+class _TabVBarDemoState extends State<TabVBarDemo> {
+  // 初始化TabController，包含三个TabItem
+  TabController tabController = TabController(selectedIndex: 0, items: [
+    TabItem(id: "1", label: "Tab 1dssdfffffffffffff"),
+    TabItem(id: "2", label: "Tab 2sdfsfffffffff"),
+    TabItem(id: "3", label: "Tab 3sdfsdfsdfsdf"),
+  ]);
   @override
-  _TabContainerState createState() => _TabContainerState();
-}
-
-class _TabContainerState extends State<TabContainer>
-    with SingleTickerProviderStateMixin {
-  late TabController _controller;
-  TabController? _defaultController;
-  late ScrollController _scrollController;
-  late Widget _child;
-  List<Widget> _tabs = <Widget>[];
-
-  late TextStyle _selectedTextStyle;
-  late TextStyle _unselectedTextStyle;
-  late TextDirection _textDirection;
-
-  double _progress = 0;
-  Color? _color;
-  ColorTween? _spectrum;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.controller == null) {
-      _defaultController = TabController(
-        vsync: this,
-        animationDuration: widget.duration,
-        length: widget.tabs.length,
-      );
-      _controller = _defaultController!;
-    } else {
-      _controller = widget.controller!;
-    }
-
-    _controller.addListener(_tabListener);
-    _controller.animation!.addListener(_animationListener);
-
-    _progress = _controller.animation!.value;
-
-    _scrollController = ScrollController();
-
-    if (widget.colors != null) {
-      _color = widget.colors![_controller.index];
-    }
-
-    _buildChild();
-  }
-
-  @override
-  void didChangeDependencies() {
-    _selectedTextStyle = widget.selectedTextStyle ??
-        Theme.of(context).textTheme.bodyMedium ??
-        const TextStyle();
-    _unselectedTextStyle = widget.unselectedTextStyle ??
-        Theme.of(context).textTheme.bodyMedium ??
-        const TextStyle();
-    _textDirection = widget.textDirection ?? Directionality.of(context);
-    super.didChangeDependencies();
-    _remountController();
-    _buildChild();
-    _buildTabs();
-  }
-
-  @override
-  void didUpdateWidget(covariant TabContainer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.controller != oldWidget.controller) {
-      _remountController();
-    }
-    _buildChild();
-    _buildTabs();
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-
-    _controller.animation?.removeListener(_animationListener);
-    _controller.removeListener(_tabListener);
-    _defaultController?.dispose();
-
-    super.dispose();
-  }
-
-  double _animationFraction(double current, int previous, int next) {
-    if (next - previous == 0) {
-      return 1;
-    }
-    return (current - previous) / (next - previous);
-  }
-
-  void _animationListener() {
-    _progress = _controller.animation!.value;
-    if (widget.colors != null) {
-      _color = _spectrum?.lerp(_animationFraction(
-          _progress, _controller.previousIndex, _controller.index));
-    }
-    _updateTabs(_controller.previousIndex, _controller.index);
-  }
-
-  void _tabListener() {
-    if (widget.colors != null) {
-      _spectrum = ColorTween(
-        begin: widget.colors?[_controller.previousIndex],
-        end: widget.colors?[_controller.index],
-      );
-    }
-    _buildChild();
-  }
-
-  void _remountController() {
-    if (widget.controller != null) {
-      if (widget.controller == _controller) {
-        return;
-      }
-    } else if (_defaultController != null &&
-        _defaultController == _controller) {
-      return;
-    }
-
-    _controller.animation?.removeListener(_animationListener);
-    _controller.removeListener(_tabListener);
-    _defaultController?.dispose();
-    _defaultController = null;
-
-    if (widget.controller != null) {
-      _controller = widget.controller!;
-    } else {
-      _defaultController = TabController(
-        vsync: this,
-        animationDuration: widget.duration,
-        length: widget.tabs.length,
-      );
-      _controller = _defaultController!;
-    }
-
-    _controller.addListener(_tabListener);
-    _controller.animation!.addListener(_animationListener);
-
-    _progress = _controller.animation!.value;
-  }
-
-  TextStyle _calculateTextStyle(int index) {
-    final TextStyleTween styleTween = TextStyleTween(
-      begin: _unselectedTextStyle,
-      end: _selectedTextStyle,
-    );
-
-    final double animationFraction = _animationFraction(
-        _progress, _controller.previousIndex, _controller.index);
-
-    if (index == _controller.index) {
-      return styleTween
-          .lerp(animationFraction)
-          .copyWith(fontSize: _unselectedTextStyle.fontSize);
-    } else if (index == _controller.previousIndex) {
-      return styleTween
-          .lerp(1 - animationFraction)
-          .copyWith(fontSize: _unselectedTextStyle.fontSize);
-    } else {
-      return _unselectedTextStyle;
-    }
-  }
-
-  double _calculateTextScale(int index) {
-    final double animationFraction = _animationFraction(
-        _progress, _controller.previousIndex, _controller.index);
-    final double textRatio =
-        _selectedTextStyle.fontSize! / _unselectedTextStyle.fontSize!;
-
-    if (index == _controller.index) {
-      return lerpDouble(1, textRatio, animationFraction)!;
-    } else if (index == _controller.previousIndex) {
-      return lerpDouble(textRatio, 1, animationFraction)!;
-    } else {
-      return 1.0;
-    }
-  }
-
-  Widget _getTab(int index) {
-    final Widget tab = widget.tabs[index];
-
-    if (widget.overrideTextProperties) {
-      return tab;
-    }
-
-    return Transform(
-      alignment: Alignment.center,
-      transform: Matrix4.identity()..scale(_calculateTextScale(index)),
-      child: Container(
-        child: DefaultTextStyle.merge(
-          child: tab,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.fade,
-          style: _calculateTextStyle(index),
+  Widget build(BuildContext context) {
+    return Container(
+      child: Center(
+        child: Column(
+          children: [
+            // 添加Tab按钮
+            IconButton(
+                onPressed: () {
+                  String id = Uuid().v4().toString();
+                  tabController.addItem(
+                      TabItem(
+                          id: id,
+                          label: "Tab ${tabController.items.length + 1}"),
+                      selectLast: true);
+                },
+                icon: const Icon(Icons.add)),
+            // 移除第一个Tab按钮
+            IconButton(
+                onPressed: () {
+                  tabController.removeItem(0);
+                },
+                icon: const Icon(Icons.remove)),
+            // 查找TabItem按钮
+            IconButton(
+                onPressed: () {
+                  var item = tabController.getItemById("1");
+                  print(item);
+                },
+                icon: const Icon(Icons.search)),
+            // 自定义TabBar
+            Container(
+                child: CustomTabBar(
+              tabController: tabController,
+              onTabClose: (item, index, details) => {
+                print("close:$item"),
+              },
+              onTabClick: (item, index, details) => {print("click:$item")},
+              onTabRightClick: (item, index, details) =>
+                  {print("right click:$item")},
+              tabHeight: 32,
+              tabWidth: 100,
+            ))
+          ],
         ),
       ),
     );
   }
+}
 
-  void _updateTabs(int previous, int next) {
-    setState(() {
-      _tabs[previous] = _getTab(previous);
-      _tabs[next] = _getTab(next);
-    });
-  }
+class TabBarThemeData {
+  final Color? backgroundColor;
+  final Color? activeBackgroundColor;
+  final Color? hoverBackgroundColor;
+  final Color? textColor;
+  final Color? activeTextColor;
+  final Color? hoverTextColor;
+  final Color? closeIconColor;
+  final Color? borderColor;
 
-  void _buildTabs() {
-    List<Widget> tabs = <Widget>[];
-
-    for (int index = 0; index < widget.tabs.length; index++) {
-      tabs.add(_getTab(index));
-    }
-
-    setState(() {
-      _tabs = tabs;
-    });
-  }
-
-  void _buildChild() {
-    Widget child = widget.child ??
-        Padding(
-          padding: widget.childPadding,
-          child: AnimatedSwitcher(
-            duration: widget.childDuration ?? widget.duration,
-            switchInCurve: widget.childCurve ?? widget.curve,
-            transitionBuilder: widget.transitionBuilder ??
-                AnimatedSwitcher.defaultTransitionBuilder,
-            child: IndexedStack(
-              key: ValueKey<int>(_controller.index),
-              index: _controller.index,
-              children: widget.children!,
-            ),
-          ),
-        );
-
-    setState(() {
-      _child = child;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TabFrame(
-      controller: _controller,
-      scrollController: _scrollController,
-      progress: _progress,
-      curve: widget.curve,
-      duration: widget.duration,
-      tabs: _tabs,
-      // elevation: widget.elevation,
-      borderRadius: widget.borderRadius,
-      tabBorderRadius: widget.tabBorderRadius,
-      tabExtent: widget.tabExtent,
-      tabEdge: widget.tabEdge,
-      tabAxis:
-          (widget.tabEdge == TabEdge.left || widget.tabEdge == TabEdge.right)
-              ? Axis.vertical
-              : Axis.horizontal,
-      tabsStart: widget.tabsStart,
-      tabsEnd: widget.tabsEnd,
-      tabMinLength: widget.tabMinLength,
-      tabMaxLength: widget.tabMaxLength,
-      color: _color ?? widget.color ?? Colors.transparent,
-      semanticsConfiguration: widget.semanticsConfiguration,
-      enabled: widget.enabled,
-      enableFeedback: widget.enableFeedback,
-      textDirection: _textDirection,
-      child: _child,
+  // 根据当前的系统主题（亮色或暗色）返回默认主题
+  static TabBarThemeData get light {
+    return TabBarThemeData(
+      backgroundColor: Colors.white,
+      activeBackgroundColor: Colors.blue,
+      hoverBackgroundColor: const Color.fromARGB(255, 158, 158, 158),
+      textColor: Colors.black,
+      activeTextColor: Colors.black,
+      hoverTextColor: Colors.black,
+      closeIconColor: const Color.fromARGB(109, 170, 158, 158),
+      borderColor: const Color.fromARGB(167, 202, 202, 202),
     );
+  }
+
+  static TabBarThemeData get dark {
+    return TabBarThemeData(
+      backgroundColor: const Color.fromARGB(255, 31, 31, 31),
+      activeBackgroundColor: Colors.blue,
+      hoverBackgroundColor: const Color.fromARGB(136, 91, 91, 91),
+      textColor: Colors.white,
+      activeTextColor: Colors.white,
+      hoverTextColor: Colors.white,
+      closeIconColor: const Color.fromARGB(139, 50, 50, 50),
+      borderColor: const Color.fromARGB(255, 228, 231, 237),
+    );
+  }
+
+  // 构造函数
+  TabBarThemeData({
+    this.backgroundColor = Colors.white,
+    this.activeBackgroundColor = Colors.blue,
+    this.hoverBackgroundColor = Colors.grey,
+    this.textColor = Colors.black,
+    this.activeTextColor = Colors.black,
+    this.hoverTextColor = Colors.black,
+    this.closeIconColor = Colors.red,
+    this.borderColor = Colors.grey,
+  });
+}
+
+// TabItem类
+class TabItem {
+  String id;
+  String label;
+  dynamic data;
+  TabItem({required this.id, required this.label, this.data});
+  @override
+  String toString() {
+    return "TabItem{id: $id, label: $label}";
   }
 }
 
-class TabFrame extends MultiChildRenderObjectWidget {
-  final TabController controller;
-  final ScrollController scrollController;
-  final double progress;
-  final Curve curve;
-  final Duration duration;
-  final Widget child;
-  final List<Widget> tabs;
-  // final double elevation;
-  final BorderRadius borderRadius;
-  final BorderRadius tabBorderRadius;
-  final double tabExtent;
-  final TabEdge tabEdge;
-  final Axis tabAxis;
-  final double tabsStart;
-  final double tabsEnd;
-  final double tabMinLength;
-  final double tabMaxLength;
-  final Color color;
-  final SemanticsConfiguration? semanticsConfiguration;
-  final bool enabled;
-  final bool enableFeedback;
-  final TextDirection textDirection;
+// TabBar事件类型
+typedef TabBarEvent = Function(TabItem item, int index, TapUpDetails details);
 
-  TabFrame({
+// TabController类
+class TabController extends ChangeNotifier {
+  int selectedIndex;
+  List<TabItem> items;
+
+  TabController({required this.selectedIndex, required this.items}) {
+    if (hasDuplicateIds()) {
+      throw Exception("Id is not unique");
+    }
+  }
+
+  // 检查是否有重复的ID
+  bool hasDuplicateIds() {
+    Set<String> ids = {};
+    for (var item in items) {
+      if (!ids.add(item.id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 检查ID是否唯一
+  bool _isIdUnique(String id) {
+    return !items.any((item) => item.id == id);
+  }
+
+  // 根据ID获取TabItem
+  TabItem? getItemById(String id) {
+    for (var item in items) {
+      if (item.id == id) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  // 根据ID选择TabItem
+  void selectItemById(String id) {
+    int index = items.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      setSelectedIndex(index);
+    }
+  }
+
+  // 设置选中的索引
+  void setSelectedIndex(int index) {
+    if (index != selectedIndex) {
+      selectedIndex = index;
+      notifyListeners();
+    }
+  }
+
+  // 添加TabItem
+  void addItem(TabItem item, {bool selectLast = false}) {
+    if (!_isIdUnique(item.id)) {
+      throw Exception("Id is not unique");
+    }
+    items.add(item);
+    if (selectLast) {
+      selectedIndex = items.length - 1;
+    }
+    notifyListeners();
+  }
+
+  // 移除指定索引的TabItem
+  TabItem? removeItem(int index) {
+    if (index >= 0 && index < items.length) {
+      var item = items.removeAt(index);
+      if (selectedIndex < 0 || selectedIndex >= items.length) {
+        selectedIndex = items.length - 1;
+      }
+      notifyListeners();
+      return item;
+    }
+    return null;
+  }
+
+  // 根据ID移除TabItem
+  void removeItemById(String id) {
+    items.removeWhere((item) => item.id == id);
+    if (selectedIndex < 0 || selectedIndex >= items.length) {
+      selectedIndex = items.length - 1;
+    }
+    notifyListeners();
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TabController &&
+        other.selectedIndex == selectedIndex &&
+        listEquals(other.items, items);
+  }
+}
+
+// 状态控制器类
+class StateController extends ChangeNotifier {
+  int _hoveredIndex = -1;
+  int _pressedIndex = -1;
+  int _closeIndex = -1;
+  int _rightIndex = -1;
+  bool _hoveredIcon = false;
+
+  int get hoveredIndex => _hoveredIndex;
+  int get pressedIndex => _pressedIndex;
+  int get closeIndex => _closeIndex;
+  int get rightIndex => _rightIndex;
+  bool get hoveredIcon => _hoveredIcon;
+
+  set hoveredIndex(int value) {
+    _hoveredIndex = value;
+    notifyListeners();
+  }
+
+  set pressedIndex(int value) {
+    _pressedIndex = value;
+    notifyListeners();
+  }
+
+  set closeIndex(int value) {
+    _closeIndex = value;
+    notifyListeners();
+  }
+
+  set rightIndex(int value) {
+    _rightIndex = value;
+    notifyListeners();
+  }
+
+  set hoveredIcon(bool value) {
+    _hoveredIcon = value;
+    notifyListeners();
+  }
+
+  @override
+  String toString() {
+    return 'hoveredIndex:$_hoveredIndex,pressedIndex:$_pressedIndex,hoveredIcon:$_hoveredIcon,closeIndex:$_closeIndex';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is StateController &&
+        other._hoveredIndex == _hoveredIndex &&
+        other._pressedIndex == _pressedIndex &&
+        other._hoveredIcon == _hoveredIcon;
+  }
+}
+
+// 自定义TabBar类
+class CustomTabBar extends StatefulWidget {
+  final TabController tabController;
+  final double? tabWidth;
+  final double? tabHeight;
+  final TabBarEvent? onTabClick;
+  final TabBarEvent? onTabClose;
+  final TabBarEvent? onTabRightClick;
+  final TabBarThemeData? theme;
+  const CustomTabBar({
     super.key,
-    required this.controller,
-    required this.scrollController,
-    required this.progress,
-    required this.curve,
-    required this.duration,
-    required this.child,
-    required this.tabs,
-    // required this.elevation,
-    required this.borderRadius,
-    required this.tabBorderRadius,
-    required this.tabExtent,
-    required this.tabEdge,
-    required this.tabAxis,
-    required this.tabsStart,
-    required this.tabsEnd,
-    required this.tabMinLength,
-    required this.tabMaxLength,
-    required this.color,
-    required this.semanticsConfiguration,
-    required this.enabled,
-    required this.enableFeedback,
-    required this.textDirection,
-  }) : super(children: [child, ...tabs]);
+    required this.tabController,
+    this.onTabClick,
+    this.onTabClose,
+    this.onTabRightClick,
+    this.tabWidth = 100,
+    this.tabHeight = 32,
+    this.theme,
+  });
 
   @override
-  RenderTabFrame createRenderObject(BuildContext context) {
-    return RenderTabFrame(
-      context: context,
-      controller: controller,
-      scrollController: scrollController,
-      progress: progress,
-      curve: curve,
-      duration: duration,
-      tabs: tabs,
-      // elevation: elevation,
-      borderRadius: borderRadius,
-      tabBorderRadius: tabBorderRadius,
-      tabExtent: tabExtent,
-      tabEdge: tabEdge,
-      tabAxis: tabAxis,
-      tabsStart: tabsStart,
-      tabsEnd: tabsEnd,
-      tabMinLength: tabMinLength,
-      tabMaxLength: tabMaxLength,
-      color: color,
-      semanticsConfiguration: semanticsConfiguration,
-      enabled: enabled,
-      enableFeedback: enableFeedback,
-      textDirection: textDirection,
-    );
-  }
-
-  @override
-  void updateRenderObject(BuildContext context, RenderTabFrame renderObject) {
-    renderObject
-      ..context = context
-      ..controller = controller
-      ..scrollController = scrollController
-      ..progress = progress
-      ..curve = curve
-      ..duration = duration
-      ..tabs = tabs
-      // ..elevation = elevation
-      ..borderRadius = borderRadius
-      ..tabBorderRadius = tabBorderRadius
-      ..tabExtent = tabExtent
-      ..tabEdge = tabEdge
-      ..tabAxis = tabAxis
-      ..tabsStart = tabsStart
-      ..tabsEnd = tabsEnd
-      ..tabMinLength = tabMinLength
-      ..tabMaxLength = tabMaxLength
-      ..color = color
-      ..semanticsConfiguration = semanticsConfiguration
-      ..enabled = enabled
-      ..enableFeedback = enableFeedback
-      ..textDirection = textDirection;
-  }
+  _CustomTabBarState createState() => _CustomTabBarState();
 }
 
-class TabFrameParentData extends ContainerBoxParentData<RenderBox> {}
-
-class RenderTabFrame extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, TabFrameParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, TabFrameParentData> {
-  RenderTabFrame({
-    required BuildContext context,
-    required TabController controller,
-    required ScrollController scrollController,
-    required double progress,
-    required Curve curve,
-    required Duration duration,
-    required List<Widget> tabs,
-    // required double elevation,
-    required BorderRadius borderRadius,
-    required BorderRadius tabBorderRadius,
-    required double tabExtent,
-    required TabEdge tabEdge,
-    required Axis tabAxis,
-    required double tabsStart,
-    required double tabsEnd,
-    required double tabMinLength,
-    required double tabMaxLength,
-    required Color color,
-    required SemanticsConfiguration? semanticsConfiguration,
-    required bool enabled,
-    required bool enableFeedback,
-    required TextDirection textDirection,
-  })  : _context = context,
-        _controller = controller,
-        _scrollController = scrollController,
-        _progress = progress,
-        _curve = curve,
-        _duration = duration,
-        _tabs = tabs,
-        // _elevation = elevation,
-        _borderRadius = borderRadius,
-        _tabBorderRadius = tabBorderRadius,
-        _tabExtent = tabExtent,
-        _tabEdge = tabEdge,
-        _tabAxis = tabAxis,
-        _tabsStart = tabsStart,
-        _tabsEnd = tabsEnd,
-        _tabMinLength = tabMinLength,
-        _tabMaxLength = tabMaxLength,
-        _color = color,
-        _semanticsConfiguration = semanticsConfiguration,
-        _enabled = enabled,
-        _enableFeedback = enableFeedback,
-        _textDirection = textDirection,
-        super();
-
-  BuildContext get context => _context;
-  BuildContext _context;
-  set context(BuildContext value) {
-    if (value == _context) return;
-    _context = value;
-    markNeedsLayout();
-  }
-
-  TabController get controller => _controller;
-  TabController _controller;
-  set controller(TabController value) {
-    if (value == _controller) return;
-    _controller = value;
-    markNeedsLayout();
-    markNeedsSemanticsUpdate();
-  }
-
-  ScrollController get scrollController => _scrollController;
-  ScrollController _scrollController;
-  set scrollController(ScrollController value) {
-    if (value == _scrollController) return;
-    _scrollController = value;
-    markNeedsLayout();
-  }
-
-  double get scrollOffset => _scrollOffset;
-  double _scrollOffset = 0;
-  set scrollOffset(double value) {
-    if (value == _scrollOffset || !_hasTabOverflow) return;
-    _scrollOffset = value.clamp(0, _tabOverflow);
-    markNeedsLayout();
-  }
-
-  double get progress => _progress;
-  double _progress;
-  set progress(double value) {
-    if (value == _progress) return;
-    assert(value >= 0 && value <= _tabs.length);
-
-    _progress = value;
-
-    _implicitScroll();
-
-    if (_progress == _progress.round()) {
-      markNeedsSemanticsUpdate();
-    }
-
-    markNeedsLayout();
-  }
-
-  Curve get curve => _curve;
-  Curve _curve;
-  set curve(Curve value) {
-    if (value == _curve) return;
-    _curve = value;
-  }
-
-  Duration get duration => _duration;
-  Duration _duration;
-  set duration(Duration value) {
-    if (value == _duration) return;
-    _duration = value;
-  }
-
-  List<Widget> get tabs => _tabs;
-  List<Widget> _tabs;
-  set tabs(List<Widget> value) {
-    if (value == _tabs) return;
-    assert(value.isNotEmpty);
-    _tabs = value;
-    markNeedsLayout();
-    markNeedsSemanticsUpdate();
-  }
-
-  // double get elevation => _elevation;
-  // double _elevation;
-  // set elevation(double value) {
-  //   if (value == _elevation) return;
-  //   assert(value >= 0);
-  //   _elevation = value;
-  //   markNeedsPaint();
-  // }
-
-  BorderRadius get borderRadius => _borderRadius;
-  BorderRadius _borderRadius;
-  set borderRadius(BorderRadius value) {
-    if (value == _borderRadius) return;
-    _borderRadius = value;
-    markNeedsPaint();
-  }
-
-  BorderRadius get tabBorderRadius => _tabBorderRadius;
-  BorderRadius _tabBorderRadius;
-  set tabBorderRadius(BorderRadius value) {
-    if (value == _tabBorderRadius) return;
-    _tabBorderRadius = value;
-    markNeedsPaint();
-  }
-
-  double get tabExtent => _tabExtent;
-  double _tabExtent;
-  set tabExtent(double value) {
-    if (value == _tabExtent) return;
-    assert(value >= 0);
-    _tabExtent = value;
-    markNeedsLayout();
-  }
-
-  TabEdge get tabEdge => _tabEdge;
-  TabEdge _tabEdge;
-  set tabEdge(TabEdge value) {
-    if (value == _tabEdge) return;
-    _tabEdge = value;
-    markNeedsLayout();
-  }
-
-  Axis get tabAxis => _tabAxis;
-  Axis _tabAxis;
-  set tabAxis(Axis value) {
-    if (value == _tabAxis) return;
-    _tabAxis = value;
-    markNeedsLayout();
-  }
-
-  double get tabsStart => _tabsStart;
-  double _tabsStart;
-  set tabsStart(double value) {
-    if (value == _tabsStart) return;
-    _tabsStart = value;
-    markNeedsLayout();
-  }
-
-  double get tabsEnd => _tabsEnd;
-  double _tabsEnd;
-  set tabsEnd(double value) {
-    if (value == _tabsEnd) return;
-    _tabsEnd = value;
-    markNeedsLayout();
-  }
-
-  double get tabMinLength => _tabMinLength;
-  double _tabMinLength;
-  set tabMinLength(double value) {
-    if (value == _tabMinLength) return;
-    _tabMinLength = value;
-    markNeedsLayout();
-  }
-
-  double get tabMaxLength => _tabMaxLength;
-  double _tabMaxLength;
-  set tabMaxLength(double value) {
-    if (value == _tabMaxLength) return;
-    _tabMaxLength = value;
-    markNeedsLayout();
-  }
-
-  Color get color => _color;
-  Color _color;
-  set color(Color value) {
-    if (value == _color) return;
-    _color = value;
-    markNeedsPaint();
-  }
-
-  SemanticsConfiguration? get semanticsConfiguration => _semanticsConfiguration;
-  SemanticsConfiguration? _semanticsConfiguration;
-  set semanticsConfiguration(SemanticsConfiguration? value) {
-    if (value == _semanticsConfiguration) return;
-    _semanticsConfiguration = value;
-    markNeedsSemanticsUpdate();
-  }
-
-  bool get enabled => _enabled;
-  bool _enabled;
-  set enabled(bool value) {
-    if (value == _enabled) return;
-    _enabled = value;
-    _tapGestureRecognizer.onTapDown = _enabled ? _onTapDown : null;
-    _dragGestureRecognizer?.onUpdate = _enabled ? _onDragUpdate : null;
-    markNeedsSemanticsUpdate();
-  }
-
-  bool get enableFeedback => _enableFeedback;
-  bool _enableFeedback;
-  set enableFeedback(bool value) {
-    if (value == _enableFeedback) return;
-    _enableFeedback = value;
-  }
-
-  TextDirection get textDirection => _textDirection;
-  TextDirection _textDirection;
-  set textDirection(TextDirection value) {
-    if (value == _textDirection) return;
-    _textDirection = value;
-    markNeedsLayout();
-    markNeedsSemanticsUpdate();
-  }
+// 自定义TabBar状态类
+class _CustomTabBarState extends State<CustomTabBar>
+    with SingleTickerProviderStateMixin {
+  final StateController _stateController = StateController();
+  late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
+  late TabBarThemeData _theme;
 
   @override
-  void setupParentData(covariant RenderObject child) {
-    if (child.parentData is! TabFrameParentData) {
-      child.parentData = TabFrameParentData();
-    }
+  void initState() {
+    super.initState();
+    _theme = widget.theme ?? TabBarThemeData();
+    _tabController = widget.tabController;
+    _tabController.addListener(_updateUi);
+    _stateController.addListener(_updateUi);
   }
 
-  @override
-  void attach(covariant PipelineOwner owner) {
-    super.attach(owner);
-
-    _tapGestureRecognizer = TapGestureRecognizer(debugOwner: this)
-      ..onTapDown = enabled ? _onTapDown : null;
-
-    if (tabAxis == Axis.vertical) {
-      _dragGestureRecognizer = VerticalDragGestureRecognizer(debugOwner: this)
-        ..onUpdate = enabled ? _onDragUpdate : null;
-    } else {
-      _dragGestureRecognizer = HorizontalDragGestureRecognizer(debugOwner: this)
-        ..onUpdate = enabled ? _onDragUpdate : null;
-    }
-  }
-
-  @override
-  void detach() {
-    super.detach();
-
-    _tapGestureRecognizer.dispose();
-    _dragGestureRecognizer?.dispose();
+  void _updateUi() {
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _clipPathLayer.layer = null;
-    _tapGestureRecognizer.dispose();
-    _dragGestureRecognizer?.dispose();
     super.dispose();
+    _tabController.removeListener(_updateUi);
+    _stateController.removeListener(_updateUi);
+    _tabController.dispose();
+    _stateController.dispose();
+    _scrollController.dispose();
   }
 
-  @override
-  bool hitTestSelf(Offset position) {
-    return size.contains(position);
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    bool isHit = false;
-
-    for (var child = firstChild; child != null; child = childAfter(child)) {
-      final TabFrameParentData childParentData =
-          child.parentData as TabFrameParentData;
-      isHit = result.addWithPaintOffset(
-        offset: childParentData.offset,
-        position: position,
-        hitTest: (BoxHitTestResult result, Offset? transformed) {
-          assert(transformed == position - childParentData.offset);
-          return child!.hitTest(result, position: transformed!);
-        },
-      );
-    }
-
-    return isHit;
-  }
-
-  late TapGestureRecognizer _tapGestureRecognizer;
-  DragGestureRecognizer? _dragGestureRecognizer;
-
-  @override
-  void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    assert(debugHandleEvent(event, entry));
-
-    if (event is PointerScrollEvent) {
-      if (_hasTabOverflow) {
-        _onPointerScroll(event);
-      }
-    } else if (event is PointerPanZoomStartEvent) {
-      if (_hasTabOverflow) {
-        _dragGestureRecognizer?.addPointerPanZoom(event);
-      }
-    } else if (event is PointerDownEvent) {
-      _tapGestureRecognizer.addPointer(event);
-      if (_hasTabOverflow) {
-        _dragGestureRecognizer?.addPointer(event);
+  // 更新鼠标悬停索引
+  void _updateHoveredIndex(Offset position) {
+    for (int i = 0; i < _tabController.items.length; i++) {
+      double startX = i * widget.tabWidth!;
+      Rect buttonRect =
+          Rect.fromLTWH(startX, 0, widget.tabWidth!, widget.tabHeight!);
+      if (buttonRect.contains(position)) {
+        _stateController.hoveredIndex = i;
+        return;
       }
     }
+    _stateController.hoveredIndex = -1;
   }
 
-  double _alignScrollDelta(PointerScrollEvent event) {
-    final Set<LogicalKeyboardKey> pressed =
-        HardwareKeyboard.instance.logicalKeysPressed;
-    final bool flipAxes = pressed.any(
-            ScrollConfiguration.of(context).pointerAxisModifiers.contains) &&
-        event.kind == PointerDeviceKind.mouse;
-
-    return flipAxes ? event.scrollDelta.dx : event.scrollDelta.dy;
-  }
-
-  void _handlePointerScroll(PointerSignalEvent event) {
-    assert(event is PointerScrollEvent);
-    final double delta = _alignScrollDelta(event as PointerScrollEvent);
-    scrollOffset += delta;
-  }
-
-  void _onPointerScroll(PointerScrollEvent event) {
-    final double dx = event.localPosition.dx;
-    final double dy = event.localPosition.dy;
-
-    if (_tabViewport.contains(dx, dy, _tabMetrics.totalLength)) {
-      final double delta = _alignScrollDelta(event);
-      if (delta != 0.0) {
-        GestureBinding.instance.pointerSignalResolver
-            .register(event, _handlePointerScroll);
+  // 更新鼠标悬停在关闭图标上的索引
+  void _updateHoveredIconIndex(Offset position) {
+    for (int i = 0; i < _tabController.items.length; i++) {
+      double startX = (i + 1) * widget.tabWidth! - widget.tabHeight!;
+      if (startX < 0) {
+        return;
+      }
+      Rect closeIconRect =
+          Rect.fromLTWH(startX, 0, widget.tabHeight!, widget.tabHeight!);
+      if (closeIconRect.contains(position)) {
+        _stateController.hoveredIcon = true;
+        return;
       }
     }
+    _stateController.hoveredIcon = false;
   }
 
+  // 处理鼠标按下事件
   void _onTapDown(TapDownDetails details) {
-    final double dx = details.localPosition.dx;
-    final double dy = details.localPosition.dy;
+    final tabWidth = widget.tabWidth!;
+    final tabHeight = widget.tabHeight!;
+    final closeIconOffset = tabWidth - tabHeight;
 
-    if (_tabViewport.contains(dx, dy, _tabMetrics.totalLength)) {
-      double pos = dx;
+    for (int i = 0; i < _tabController.items.length; i++) {
+      final startX = i * tabWidth;
 
-      if (tabAxis == Axis.vertical) {
-        pos = dy;
+      // 定义关闭图标区域
+      if (Rect.fromLTWH(startX + closeIconOffset, 0, tabHeight, tabHeight)
+          .contains(details.localPosition)) {
+        _stateController.closeIndex = i;
+        _stateController.pressedIndex = -1;
+        return;
       }
 
-      controller.animateTo(
-        (pos - _tabViewport.start + scrollOffset) ~/ _tabMetrics.length,
-        curve: curve,
-      );
-      if (enableFeedback) {
-        Feedback.forTap(context);
+      // 定义按钮区域
+      if (Rect.fromLTWH(startX, 0, closeIconOffset, tabHeight)
+          .contains(details.localPosition)) {
+        _stateController.pressedIndex = i;
+        _stateController.closeIndex = -1;
+        _tabController.setSelectedIndex(i);
+        return;
       }
     }
 
-    return;
+    // 默认处理
+    _stateController.closeIndex = -1;
+    _stateController.pressedIndex = -1;
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    final double dx = details.localPosition.dx;
-    final double dy = details.localPosition.dy;
+  // 处理鼠标右键按下事件
+  void _onSecondaryTapDown(TapDownDetails details) {
+    final tabWidth = widget.tabWidth!;
+    final tabHeight = widget.tabHeight!;
 
-    if (_tabViewport.contains(dx, dy, _tabMetrics.totalLength)) {
-      scrollOffset -= details.primaryDelta!;
+    for (int i = 0; i < _tabController.items.length; i++) {
+      final startX = i * tabWidth;
+      // 定义按钮区域
+      if (Rect.fromLTWH(startX, 0, tabWidth, tabHeight)
+          .contains(details.localPosition)) {
+        _stateController.rightIndex = i;
+        return;
+      }
     }
+
+    // 默认处理
+    _stateController.rightIndex = -1;
   }
 
-  void _implicitScroll() {
-    final (destinationStart, destinationEnd) =
-        _getIndicatorBounds(controller.index.toDouble());
-    if (destinationStart >= _tabViewport.start &&
-        destinationEnd <= _tabViewport.end) {
-      return;
+  // 处理鼠标右键抬起事件
+  void _onSecondaryTapUp(TapUpDetails details) {
+    if (_stateController.rightIndex != -1) {
+      assert(_stateController.rightIndex >= 0 &&
+          _stateController.rightIndex < _tabController.items.length);
+      if (widget.onTabRightClick != null) {
+        widget.onTabRightClick!(
+            _tabController.items[_stateController.rightIndex],
+            _stateController.rightIndex,
+            details);
+      }
     }
-
-    final (indicatorStart, indicatorEnd) = _getIndicatorBounds(progress);
-
-    if (indicatorEnd > _tabViewport.end &&
-        indicatorStart >= _tabViewport.start) {
-      scrollOffset += indicatorEnd - _tabViewport.end;
-    } else if (indicatorStart < _tabViewport.start &&
-        indicatorEnd <= _tabViewport.end) {
-      scrollOffset += indicatorStart - _tabViewport.start;
-    }
+    _stateController.rightIndex = -1;
   }
 
-  @override
-  bool get alwaysNeedsCompositing => _hasTabOverflow;
-
-  bool _hasTabOverflow = false;
-  double _tabOverflow = 0;
-
-  late _TabViewport _tabViewport;
-  late _TabMetrics _tabMetrics;
-  _TabViewport? _prevTabViewport;
-
-  @override
-  void performLayout() {
-    //Layout the main child
-    RenderBox? child = firstChild;
-
-    if (child == null) {
-      return;
+  // 处理鼠标抬起事件
+  void _onTapUp(TapUpDetails details) {
+    if (_stateController.pressedIndex != -1) {
+      assert(_stateController.pressedIndex >= 0 &&
+          _stateController.pressedIndex < _tabController.items.length);
+      if (widget.onTabClick != null) {
+        widget.onTabClick!(_tabController.items[_stateController.pressedIndex],
+            _stateController.pressedIndex, details);
+      }
     }
-
-    late final EdgeInsets edges;
-
-    if (tabAxis == Axis.vertical) {
-      edges = EdgeInsets.only(left: tabExtent);
-    } else {
-      edges = EdgeInsets.only(top: tabExtent);
-    }
-
-    child.layout(constraints.deflate(edges), parentUsesSize: true);
-
-    size = constraints.constrain(edges.inflateSize(child.size));
-
-    final TabFrameParentData childParentData =
-        child.parentData as TabFrameParentData;
-
-    if (tabEdge == TabEdge.left) {
-      childParentData.offset = Offset(tabExtent, 0);
-    } else if (tabEdge == TabEdge.top) {
-      childParentData.offset = Offset(0, tabExtent);
-    }
-
-    //Layout the tabs
-    child = childAfter(child);
-
-    _tabViewport = _TabViewport(
-      parentSize: size,
-      tabEdge: tabEdge,
-      tabExtent: tabExtent,
-      tabsStart: tabsStart,
-      tabsEnd: tabsEnd,
-    );
-
-    _tabMetrics = _TabMetrics(
-      count: tabs.length,
-      range: _tabViewport.range,
-      minLength: tabMinLength,
-      maxLength: tabMaxLength,
-    );
-
-    bool tabViewportChanged = _prevTabViewport?.size != _tabViewport.size ||
-        _prevTabViewport?.start != _tabViewport.start;
-
-    _prevTabViewport = _tabViewport;
-
-    _tabOverflow = _tabMetrics.totalLength - _tabViewport.range;
-
-    if (_hasTabOverflow != _tabOverflow > 0) {
-      markNeedsCompositingBitsUpdate();
-    }
-    _hasTabOverflow = _tabOverflow > 0;
-
-    if (_hasTabOverflow && (_clipPath == null || tabViewportChanged)) {
-      final double viewportWidth = _tabViewport.size.width;
-      final double viewportHeight = _tabViewport.size.height;
-      final double brx = tabBorderRadius.bottomRight.x;
-      final double cutoff = max(0, _tabViewport.start - brx);
-
-      if (tabAxis == Axis.vertical) {
-        _clipPath = Path.combine(
-          PathOperation.xor,
-          Path()
-            ..addRect(
-              Rect.fromPoints(
-                Offset(0, cutoff),
-                Offset(
-                  viewportWidth,
-                  min(size.height, cutoff + viewportHeight + brx),
-                ),
-              ),
-            ),
-          Path()
-            ..addRect(
-              Rect.fromPoints(
-                Offset(tabExtent, 0),
-                Offset(size.width, size.height),
-              ),
-            ),
-        );
-        if (tabEdge == TabEdge.right) {
-          _clipPath = _clipPath!.transform((Matrix4.identity()
-                ..scale(-1.0, 1.0)
-                ..translate(-size.width, 0.0))
-              .storage);
-        }
-      } else {
-        _clipPath = Path.combine(
-            PathOperation.xor,
-            Path()
-              ..addRect(
-                Rect.fromPoints(
-                  Offset(cutoff, size.height - tabExtent),
-                  Offset(
-                    min(size.width, cutoff + viewportWidth + brx),
-                    size.height,
-                  ),
-                ),
-              ),
-            Path()
-              ..addRect(Rect.fromPoints(
-                  Offset.zero, Offset(size.width, size.height - tabExtent))));
-        if (tabEdge == TabEdge.top) {
-          _clipPath = _clipPath!.transform((Matrix4.identity()
-                ..scale(1.0, -1.0)
-                ..translate(0.0, -size.height))
-              .storage);
+    if (_stateController.closeIndex != -1) {
+      assert(_stateController.closeIndex >= 0 &&
+          _stateController.closeIndex < _tabController.items.length);
+      if (widget.onTabClose != null) {
+        var item = _tabController.removeItem(_stateController.closeIndex);
+        if (widget.onTabClose != null && item != null) {
+          widget.onTabClose!(item, _stateController.closeIndex, details);
         }
       }
     }
+    _stateController.pressedIndex = -1;
+    _stateController.closeIndex = -1;
+  }
 
-    BoxConstraints tabConstraints = BoxConstraints(
-      maxWidth: _tabMetrics.length,
-      maxHeight: tabExtent,
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onSecondaryTapDown: _onSecondaryTapDown,
+      onSecondaryTapUp: _onSecondaryTapUp,
+      onTapUp: _onTapUp,
+      onTapCancel: () => _stateController.pressedIndex = -1,
+      child: MouseRegion(
+          onHover: (event) {
+            _updateHoveredIndex(event.localPosition);
+            _updateHoveredIconIndex(event.localPosition);
+          },
+          onExit: (event) => _updateHoveredIndex(event.localPosition),
+          child: Scrollbar(
+            thumbVisibility: true,
+            controller: _scrollController,
+            scrollbarOrientation: ScrollbarOrientation.bottom,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              controller: _scrollController,
+              child: CustomPaint(
+                size: Size(_tabController.items.length * widget.tabWidth!,
+                    widget.tabHeight!), // 设置画布大小
+                painter: TabBarPainter(
+                    selectedIndex: _tabController.selectedIndex,
+                    items: _tabController.items,
+                    theme: widget.theme ??
+                        (Theme.of(context).brightness == Brightness.dark
+                            ? TabBarThemeData.dark
+                            : TabBarThemeData.light),
+                    tabWidth: widget.tabWidth!,
+                    tabHeight: widget.tabHeight!,
+                    borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    stateController: _stateController),
+              ),
+            ),
+          )),
     );
-
-    if (tabAxis == Axis.vertical) {
-      tabConstraints = tabConstraints.flipped;
-    }
-
-    for (var index = 0; child != null; index++, child = childAfter(child)) {
-      child.layout(tabConstraints, parentUsesSize: true);
-
-      final TabFrameParentData tabParentData =
-          child.parentData as TabFrameParentData;
-
-      final double displacement = _tabMetrics.length * index - scrollOffset;
-
-      final EdgeInsets tabInsets = EdgeInsets.only(
-        top: (tabConstraints.maxHeight - child.size.height) / 2,
-        left: (tabConstraints.maxWidth - child.size.width) / 2,
-      );
-
-      switch (tabEdge) {
-        case TabEdge.left:
-          tabParentData.offset = Offset(
-            tabInsets.left,
-            tabInsets.top + displacement + _tabViewport.start,
-          );
-          break;
-        case TabEdge.top:
-          tabParentData.offset = Offset(
-            tabInsets.left + displacement + _tabViewport.start,
-            tabInsets.top,
-          );
-          break;
-        case TabEdge.right:
-          tabParentData.offset = Offset(
-            size.width - tabInsets.left - child.size.width,
-            tabInsets.top + displacement + _tabViewport.start,
-          );
-          break;
-        case TabEdge.bottom:
-          tabParentData.offset = Offset(
-            tabInsets.left + displacement + _tabViewport.start,
-            size.height - tabInsets.top - child.size.height,
-          );
-          break;
-      }
-    }
   }
+}
+
+// TabBar的绘制类
+class TabBarPainter extends CustomPainter {
+  final StateController stateController;
+  final BorderRadius borderRadius;
+  final TabBarThemeData theme;
+  final List<TabItem> items;
+  final int selectedIndex;
+  final double tabWidth;
+  final double tabHeight;
+
+  TabBarPainter({
+    required this.items,
+    required this.stateController,
+    required this.theme,
+    required this.selectedIndex,
+    required this.tabWidth,
+    required this.tabHeight,
+    this.borderRadius = BorderRadius.zero,
+  });
 
   @override
-  bool get isRepaintBoundary => true;
-
-  @override
-  bool get sizedByParent => false;
-
-  @override
-  Size computeDryLayout(BoxConstraints constraints) {
-    RenderBox? child = firstChild;
-
-    if (child == null) {
-      return Size.zero;
-    }
-
-    late final EdgeInsets edges;
-
-    if (tabAxis == Axis.vertical) {
-      edges = EdgeInsets.only(left: tabExtent);
-    } else {
-      edges = EdgeInsets.only(top: tabExtent);
-    }
-
-    final Size childSize = child.getDryLayout(constraints.deflate(edges));
-
-    return constraints.constrain(edges.inflateSize(childSize));
-  }
-
-  @override
-  double computeMinIntrinsicWidth(double height) {
-    final double childMinIntrinsicWidth =
-        firstChild?.getMinIntrinsicWidth(height) ?? 0.0;
-    if (tabAxis == Axis.vertical) {
-      return childMinIntrinsicWidth + tabExtent;
-    }
-    return childMinIntrinsicWidth;
-  }
-
-  @override
-  double computeMaxIntrinsicWidth(double height) {
-    final double childMaxIntrinsicWidth =
-        firstChild?.getMaxIntrinsicWidth(height) ?? 0.0;
-    if (tabAxis == Axis.vertical) {
-      return childMaxIntrinsicWidth + tabExtent;
-    }
-    return childMaxIntrinsicWidth;
-  }
-
-  @override
-  double computeMinIntrinsicHeight(double width) {
-    final double childMinIntrinsicHeight =
-        firstChild?.getMinIntrinsicHeight(width) ?? 0.0;
-    if (tabAxis == Axis.vertical) {
-      return childMinIntrinsicHeight;
-    }
-    return childMinIntrinsicHeight + tabExtent;
-  }
-
-  @override
-  double computeMaxIntrinsicHeight(double width) {
-    final double childMaxIntrinsicHeight =
-        firstChild?.getMaxIntrinsicHeight(width) ?? 0.0;
-    if (tabAxis == Axis.vertical) {
-      return childMaxIntrinsicHeight;
-    }
-    return childMaxIntrinsicHeight + tabExtent;
-  }
-
-  @override
-  double? computeDistanceToActualBaseline(TextBaseline baseline) {
-    return defaultComputeDistanceToHighestActualBaseline(baseline);
-  }
-
-  Path? _clipPath;
-  final LayerHandle<ClipPathLayer> _clipPathLayer =
-      LayerHandle<ClipPathLayer>();
-
-  (double, double) _getIndicatorBounds(double factor) {
-    final double start =
-        factor * _tabMetrics.length + _tabViewport.start - scrollOffset;
-    final double end = start + _tabMetrics.length;
-
-    return (start, end);
-  }
-
-  Path _getPath() {
-    final double width = size.width;
-    final double height = size.height;
-
-    final (indicatorStart, indicatorEnd) = _getIndicatorBounds(progress);
-
-    double? critical1;
-    double? critical2;
-    double? critical3;
-    double? critical4;
-
-    if (tabAxis == Axis.vertical) {
-      double tbrx = tabBorderRadius.bottomRight.x;
-      double tblx = tabBorderRadius.bottomLeft.x;
-      double tly = borderRadius.topLeft.y;
-      double bly = borderRadius.bottomLeft.y;
-
-      final double sum1 = tbrx + tly;
-      if (sum1 > 0 && indicatorStart < sum1) {
-        critical1 = tbrx / sum1 * indicatorStart;
-        critical2 = tly / sum1 * indicatorStart;
-      }
-
-      final double sum2 = tblx + bly;
-      if (sum2 > 0 && height - indicatorEnd < sum2) {
-        critical3 = bly / sum2 * (height - indicatorEnd);
-        critical4 = tblx / sum2 * (height - indicatorEnd);
-      }
-
-      Path path = Path()
-        ..moveTo(width - borderRadius.topRight.x, 0)
-        ..quadraticBezierTo(width, 0, width, borderRadius.topRight.y)
-        ..lineTo(width, height - borderRadius.bottomRight.y)
-        ..quadraticBezierTo(
-            width, height, width - borderRadius.bottomRight.x, height)
-        ..lineTo(tabExtent + borderRadius.bottomLeft.x, height)
-        ..quadraticBezierTo(tabExtent, height, tabExtent,
-            max(height - (critical3 ?? bly), indicatorEnd))
-        ..lineTo(tabExtent, min(height, indicatorEnd + (critical4 ?? tblx)))
-        ..quadraticBezierTo(tabExtent, indicatorEnd,
-            tabExtent - tabBorderRadius.bottomLeft.y, indicatorEnd)
-        ..lineTo(tabBorderRadius.topLeft.y, indicatorEnd)
-        ..quadraticBezierTo(
-            0, indicatorEnd, 0, indicatorEnd - tabBorderRadius.topLeft.x)
-        ..lineTo(0, indicatorStart + tabBorderRadius.topRight.x)
-        ..quadraticBezierTo(
-            0, indicatorStart, tabBorderRadius.topRight.y, indicatorStart)
-        ..lineTo(tabExtent - tabBorderRadius.bottomRight.y, indicatorStart)
-        ..quadraticBezierTo(tabExtent, indicatorStart, tabExtent,
-            max(0, indicatorStart - (critical1 ?? tbrx)))
-        ..lineTo(tabExtent, min(critical2 ?? tly, indicatorStart))
-        ..quadraticBezierTo(tabExtent, 0, tabExtent + borderRadius.topLeft.x, 0)
-        ..close();
-      if (tabEdge == TabEdge.right) {
-        return path.transform((Matrix4.identity()
-              ..scale(-1.0, 1.0)
-              ..translate(-width, 0.0))
-            .storage);
-      }
-      return path;
-    } else {
-      double brx = borderRadius.bottomRight.x;
-      double tblx = tabBorderRadius.bottomLeft.x;
-      double tbrx = tabBorderRadius.topLeft.y;
-      double blx = borderRadius.bottomLeft.x;
-
-      final double sum1 = brx + tblx;
-      if (sum1 > 0 && width - indicatorEnd < sum1) {
-        critical1 = brx / sum1 * (width - indicatorEnd);
-        critical2 = tblx / sum1 * (width - indicatorEnd);
-      }
-
-      final double sum2 = tbrx + blx;
-      if (sum2 > 0 && indicatorStart < sum2) {
-        critical3 = tbrx / sum2 * (indicatorStart);
-        critical4 = blx / sum2 * (indicatorStart);
-      }
-
-      Path path = Path()
-        ..moveTo(0, borderRadius.topLeft.y)
-        ..quadraticBezierTo(0, 0, borderRadius.topLeft.x, 0)
-        ..lineTo(width - borderRadius.topRight.x, 0)
-        ..quadraticBezierTo(width, 0, width, borderRadius.topRight.y)
-        ..lineTo(width, height - tabExtent - borderRadius.bottomRight.y)
-        ..quadraticBezierTo(width, height - tabExtent,
-            max(width - (critical1 ?? brx), indicatorEnd), height - tabExtent)
-        ..lineTo(
-            min(width, indicatorEnd + (critical2 ?? tblx)), height - tabExtent)
-        ..quadraticBezierTo(indicatorEnd, height - tabExtent, indicatorEnd,
-            height - tabExtent + tabBorderRadius.bottomLeft.y)
-        ..lineTo(indicatorEnd, height - tabBorderRadius.topLeft.y)
-        ..quadraticBezierTo(indicatorEnd, height,
-            indicatorEnd - tabBorderRadius.topLeft.x, height)
-        ..lineTo(indicatorStart + tabBorderRadius.topRight.x, height)
-        ..quadraticBezierTo(indicatorStart, height, indicatorStart,
-            height - tabBorderRadius.topRight.y)
-        ..lineTo(
-            indicatorStart, height - tabExtent + tabBorderRadius.bottomRight.y)
-        ..quadraticBezierTo(indicatorStart, height - tabExtent,
-            max(0, indicatorStart - (critical3 ?? tbrx)), height - tabExtent)
-        ..lineTo(min(critical4 ?? blx, indicatorStart), height - tabExtent)
-        ..quadraticBezierTo(0, height - tabExtent, 0,
-            height - tabExtent - borderRadius.bottomLeft.y)
-        ..close();
-      if (tabEdge == TabEdge.top) {
-        return path.transform((Matrix4.identity()
-              ..scale(1.0, -1.0)
-              ..translate(0.0, -height))
-            .storage);
-      }
-      return path;
-    }
-  }
-
-  void _paint(PaintingContext context, Offset offset) {
-    final Canvas canvas = context.canvas;
-    final Paint paint = Paint()..color = color;
-
-    canvas.drawPath(_getPath(), paint);
-
-    for (var child = firstChild; child != null; child = childAfter(child)) {
-      context.paintChild(
-        child,
-        (child.parentData as TabFrameParentData).offset,
-      );
-    }
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (_hasTabOverflow && _clipPath != null) {
-      _clipPathLayer.layer = context.pushClipPath(
-        needsCompositing,
-        offset,
-        Offset.zero & size,
-        _clipPath!,
-        _paint,
-        clipBehavior: Clip.hardEdge,
-        oldLayer: _clipPathLayer.layer,
-      );
-    } else {
-      _clipPathLayer.layer = null;
-      _paint(context, offset);
-    }
-  }
-
-  @override
-  Rect? describeApproximatePaintClip(covariant RenderObject child) {
-    return Rect.fromPoints(Offset.zero, Offset(size.width, size.height));
-  }
-
-  String _getTabSemanticText(int index, int length) {
-    return 'Viewing tab ${index + 1} of $length';
-  }
-
-  @override
-  void describeSemanticsConfiguration(SemanticsConfiguration config) {
-    super.describeSemanticsConfiguration(config);
-
-    if (semanticsConfiguration != null) {
-      config.absorb(semanticsConfiguration!);
+  void paint(Canvas canvas, Size size) {
+    if (items.isEmpty) {
       return;
     }
+    size = Size(tabWidth * items.length, tabHeight);
+    final rrect = RRect.fromRectAndCorners(
+      Offset.zero & size,
+      topLeft: borderRadius.topLeft,
+      topRight: borderRadius.topRight,
+      bottomLeft: borderRadius.bottomLeft,
+      bottomRight: borderRadius.bottomRight,
+    );
 
-    final int decreasedIndex = max(controller.index - 1, 0);
-    final int increasedIndex = min(controller.index + 1, controller.length - 1);
+    final Paint paint = Paint()
+      ..color = theme.backgroundColor!
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(rrect, paint);
+    paint.color = theme.borderColor!;
+    paint.style = PaintingStyle.stroke;
+    canvas.drawRRect(rrect, paint);
 
-    config
-      ..label = 'Tab view'
-      ..hint = 'Increase or decrease to view a different tab'
-      ..value = _getTabSemanticText(controller.index, controller.length)
-      ..decreasedValue = _getTabSemanticText(decreasedIndex, controller.length)
-      ..increasedValue = _getTabSemanticText(increasedIndex, controller.length)
-      ..onDecrease = enabled ? () => controller.index = decreasedIndex : null
-      ..onIncrease = enabled ? () => controller.index = increasedIndex : null
-      ..textDirection = textDirection
-      ..isEnabled = enabled;
+    for (int i = 0; i < items.length; i++) {
+      _drawItem(canvas, i, items[i], i == stateController.hoveredIndex,
+          i == stateController.pressedIndex);
+    }
   }
+
+  // 绘制关闭按钮
+  void _drawCloseButton(
+      Canvas canvas, Offset offset, int index, Color color, Color fillColor) {
+    if ((stateController.hoveredIndex == index) &&
+        stateController.hoveredIcon) {
+      canvas.drawCircle(
+          offset + Offset(tabWidth - tabHeight / 2, tabHeight / 2),
+          10,
+          Paint()..color = theme.closeIconColor!);
+    }
+
+    const icon = Icons.close;
+    TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr);
+    iconPainter.text = TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+            fontSize: 16.0, fontFamily: icon.fontFamily, color: color));
+    iconPainter.layout();
+    iconPainter.paint(
+        canvas,
+        offset +
+            Offset(tabWidth - tabHeight + (tabHeight - iconPainter.width) / 2,
+                (tabHeight - iconPainter.height) / 2));
+  }
+
+  // 绘制文本
+  void _drawText(Canvas canvas, Offset offset, String text, Color color) {
+    TextPainter textPainter = TextPainter(
+        textDirection: TextDirection.ltr, maxLines: 1, ellipsis: "...");
+    textPainter.text = TextSpan(text: text, style: TextStyle(color: color));
+    textPainter.layout(maxWidth: tabWidth - tabHeight - 10);
+    textPainter.paint(
+        canvas,
+        offset +
+            Offset((tabWidth - tabHeight - textPainter.width + 10) / 2,
+                (tabHeight - textPainter.height) / 2));
+  }
+
+  // 绘制TabItem
+  void _drawItem(
+      Canvas canvas, int index, TabItem item, bool isHovered, bool isPressed) {
+    Offset offset = Offset(index * tabWidth, 0.0);
+    Color fillColor = Colors.transparent;
+    Color _textColor = theme.textColor!;
+    if (isPressed || isHovered) {
+      fillColor = theme.hoverBackgroundColor!;
+      _textColor = theme.activeTextColor!;
+    }
+    if (index == selectedIndex) {
+      fillColor = theme.activeBackgroundColor!;
+      _textColor = theme.activeTextColor!;
+    }
+
+    final Paint fillPaint = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+
+    final Paint strokePaint = Paint()
+      ..color = const Color.fromARGB(255, 233, 233, 233)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    final Rect rect = Rect.fromLTWH(offset.dx, offset.dy, tabWidth, tabHeight);
+    canvas.drawRRect(
+        RRect.fromRectAndCorners(rect,
+            topLeft: index == 0 ? borderRadius.topLeft : Radius.zero,
+            topRight:
+                index == items.length - 1 ? borderRadius.topRight : Radius.zero,
+            bottomLeft: index == 0 ? borderRadius.bottomLeft : Radius.zero,
+            bottomRight: index == items.length - 1
+                ? borderRadius.bottomRight
+                : Radius.zero),
+        fillPaint);
+    canvas.drawRRect(
+        RRect.fromRectAndCorners(rect,
+            topLeft: index == 0 ? borderRadius.topLeft : Radius.zero,
+            topRight:
+                index == items.length - 1 ? borderRadius.topRight : Radius.zero,
+            bottomLeft: index == 0 ? borderRadius.bottomLeft : Radius.zero,
+            bottomRight: index == items.length - 1
+                ? borderRadius.bottomRight
+                : Radius.zero),
+        strokePaint);
+    _drawText(canvas, offset, item.label, _textColor);
+    if (isHovered || selectedIndex == index) {
+      _drawCloseButton(canvas, offset, index, _textColor, fillColor);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

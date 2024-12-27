@@ -4,8 +4,7 @@ import 'package:kms/widget/tab_bar/inde.dart';
 import 'package:kms/widget/tab_container/index.dart';
 
 class ApiKeyPage extends StatefulWidget {
-  const ApiKeyPage({super.key, required this.title});
-  final String title;
+  const ApiKeyPage({super.key});
 
   @override
   State<ApiKeyPage> createState() => _ApiKeyPageState();
@@ -15,32 +14,12 @@ class _ApiKeyPageState extends State<ApiKeyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
       body: Column(
         children: [
           Container(
             width: double.infinity,
-            decoration: BoxDecoration(color: Colors.blueGrey),
-            child: TabContainer(
-              color: Colors.white,
-              tabMinLength: 10,
-              tabs: [
-                Text('Button 1'),
-                Text('Button 1'),
-                Text('Button 1'),
-                Text('Button 1'),
-                Text('Button 1'),
-              ],
-              children: [
-                Text('Button 1'),
-                Text('Button 2'),
-                Text('Button 3'),
-                Text('Button 4'),
-                Text('Button 5'),
-              ],
-            ),
+            decoration: BoxDecoration(color: Colors.transparent),
+            child: TabVBarDemo(),
           ),
           SimpleContainer(
               width: 400,
