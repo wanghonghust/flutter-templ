@@ -23,11 +23,18 @@ class CustomDialog extends Dialog {
         ),
         child: Row(children: [
           Expanded(child: title!),
-          IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.close),
+          Container(
+            alignment: Alignment.center,
+            width: 30,
+            height: 30,
+            child: IconButton(
+              iconSize: 20,
+              padding: const EdgeInsets.all(5),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.close),
+            ),
           )
         ]),
       ),

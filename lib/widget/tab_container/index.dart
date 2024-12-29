@@ -80,27 +80,27 @@ class TabBarThemeData {
   // 根据当前的系统主题（亮色或暗色）返回默认主题
   static TabBarThemeData get light {
     return TabBarThemeData(
-      backgroundColor: Colors.white,
-      activeBackgroundColor: Colors.blue,
-      hoverBackgroundColor: const Color.fromARGB(255, 158, 158, 158),
+      backgroundColor: const Color.fromARGB(255, 248, 248, 248),
+      activeBackgroundColor: const Color.fromARGB(255, 67, 85, 185),
+      hoverBackgroundColor: const Color.fromARGB(255, 235, 237, 244),
       textColor: Colors.black,
       activeTextColor: Colors.black,
       hoverTextColor: Colors.black,
-      closeIconColor: const Color.fromARGB(109, 170, 158, 158),
+      closeIconColor: const Color.fromARGB(108, 133, 133, 133),
       borderColor: const Color.fromARGB(167, 202, 202, 202),
     );
   }
 
   static TabBarThemeData get dark {
     return TabBarThemeData(
-      backgroundColor: const Color.fromARGB(255, 31, 31, 31),
-      activeBackgroundColor: Colors.blue,
-      hoverBackgroundColor: const Color.fromARGB(136, 91, 91, 91),
+      backgroundColor: const Color.fromARGB(255, 14, 14, 14),
+      activeBackgroundColor: const Color.fromARGB(255, 182, 191, 250),
+      hoverBackgroundColor: const Color.fromARGB(255, 30, 31, 36),
       textColor: Colors.white,
       activeTextColor: Colors.white,
       hoverTextColor: Colors.white,
-      closeIconColor: const Color.fromARGB(139, 50, 50, 50),
-      borderColor: const Color.fromARGB(255, 228, 231, 237),
+      closeIconColor: const Color.fromARGB(138, 148, 148, 148),
+      borderColor: const Color.fromARGB(61, 30, 30, 30),
     );
   }
 
@@ -121,6 +121,7 @@ class TabBarThemeData {
 class TabItem {
   String id;
   String label;
+  IconData? icon;
   dynamic data;
   TabItem({required this.id, required this.label, this.data});
   @override
@@ -201,8 +202,14 @@ class TabController extends ChangeNotifier {
   TabItem? removeItem(int index) {
     if (index >= 0 && index < items.length) {
       var item = items.removeAt(index);
-      if (selectedIndex < 0 || selectedIndex >= items.length) {
+      if (items.isEmpty) {
+        notifyListeners();
+        return item;
+      }
+      if (selectedIndex == index) {
         selectedIndex = items.length - 1;
+      } else if (selectedIndex > index) {
+        selectedIndex -= 1;
       }
       notifyListeners();
       return item;
@@ -211,12 +218,19 @@ class TabController extends ChangeNotifier {
   }
 
   // 根据ID移除TabItem
-  void removeItemById(String id) {
-    items.removeWhere((item) => item.id == id);
-    if (selectedIndex < 0 || selectedIndex >= items.length) {
-      selectedIndex = items.length - 1;
+  TabItem? removeItemById(String id) {
+    int index = -1;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id == id) {
+        index = i;
+        break;
+      }
     }
-    notifyListeners();
+    if (index != -1) {
+      return removeItem(index);
+    }
+
+    return null;
   }
 
   @override
