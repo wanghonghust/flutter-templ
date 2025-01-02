@@ -1,48 +1,16 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:kms/models/page.dart';
-import 'package:kms/page_controller.dart';
-import 'package:kms/pages/api_key/index.dart';
-import 'package:kms/pages/editor/index.dart';
-import 'package:kms/pages/home.dart';
-import 'package:kms/pages/key_manager/asymmetric.dart';
-import 'package:kms/pages/key_manager/symmetric.dart';
-import 'package:kms/pages/login/index.dart';
-import 'package:kms/pages/screen.dart';
-import 'package:kms/pages/setting/index.dart';
-import 'package:kms/pages/test.dart';
-import 'package:kms/preferences.dart';
-import 'package:kms/widget/menu_bar.dart';
-import 'package:provider/provider.dart';
-import 'package:sidebarx/sidebarx.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:flutter/rendering.dart';
+import 'package:kms/widget/tab_container/index.dart' as tab;
 
 void main() async {
-  await GetStorage.init();
-  Get.put(GetxPageController());
+  // debugPaintSizeEnabled = true;
   runApp(
-    ChangeNotifierProvider(
-      create: (context) =>
-          ThemeNotifier(lightTheme, context, ThemeMode.light, tableStyleLight),
-      child: const MainApp(),
-    ),
+    const MainApp(),
   );
 }
 
-const List<PageInfo> pages = [
-  PageInfo(icon: Icons.home, label: "主页", page: Home()),
-  PageInfo(icon: Icons.vpn_key, label: "对称密钥", page: Symmetric()),
-  PageInfo(icon: Icons.blur_on, label: "非对称密钥", page: Asymmetric()),
-  PageInfo(icon: Icons.api, label: "AaiKey", page: ApiKeyPage()),
-  PageInfo(icon: Icons.settings, label: " 测试", page: TestPage()),
-  PageInfo(icon: Icons.book, label: "编辑器", page: EditorPage()),
-];
-
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
-  static const selectedIcon = Icon(TDIcons.home);
   @override
   State<StatefulWidget> createState() {
     return KMSState();
@@ -50,151 +18,353 @@ class MainApp extends StatefulWidget {
 }
 
 class KMSState extends State<MainApp> with TickerProviderStateMixin {
-  var controller = SidebarXController(selectedIndex: 0, extended: true);
-  var pageController = Get.find<GetxPageController>();
-  final key = GlobalKey<ScaffoldState>();
-  @override
-  void initState() {
-    super.initState();
-    pageController.page.value = pages[controller.selectedIndex].page;
-  }
+  tab.TabController controller = tab.TabController(items: [
+    tab.TabItem(label: "Tab1", icon: Icons.home, id: "1"),
+    tab.TabItem(label: "Tab2", icon: Icons.search, id: "2"),
+  ], selectedIndex: 0);
 
   @override
   Widget build(BuildContext context) {
-    bool isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-    return ListenableBuilder(
-        listenable: controller,
-        builder: (context, child) {
-          return Consumer<ThemeNotifier>(
-              builder: (context, themeNotifier, child) {
-            return GetMaterialApp(
-              theme: themeNotifier.currentTheme,
-              darkTheme: darkTheme,
-              themeMode: themeNotifier.themeMode,
-              home: Scaffold(
-                key: key,
-                appBar: !isDesktop
-                    ? AppBar(
-                        title: Text(_getTitleByIndex(controller.selectedIndex)),
-                        actions: [
-                          Builder(builder: (BuildContext context) {
-                            return IconButton(
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .push(createRoute(const SettingPage()));
-                                },
-                                icon: const Icon(Icons.settings));
-                          }),
-                          Builder(builder: (BuildContext context) {
-                            return IconButton(
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .push(createRoute(const LoginPage()));
-                                },
-                                icon: const Icon(Icons.person));
-                          }),
-                        ],
-                      )
-                    : null,
-                drawer: isDesktop
-                    ? ExampleSidebarX(
-                        controller: controller,
-                        pages: pages,
-                      )
-                    : null,
-                body: LayoutBuilder(builder: (context, constraints) {
-                  return Row(
-                    children: [
-                      if (isDesktop)
-                        ExampleSidebarX(controller: controller, pages: pages),
-                      Expanded(
-                        child: IndexedStack(
-                          index: controller.selectedIndex,
-                          children: pages
-                              .map((e) => e.page)
-                              .toList()
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-                bottomNavigationBar: !isDesktop ? _buildBottomBar() : null,
-              ),
-            );
-          });
-        });
-  }
-
-  Widget _buildBottomBar() {
-    List<MyBottomNavigationBarItem> items = [];
-    for (int i = 0; i < pages.length; i++) {
-      items.add(MyBottomNavigationBarItem(
-        icon: Icon(pages[i].icon),
-        title: Text(pages[i].label),
-        activeColor: Theme.of(context).primaryColor,
-        inactiveColor: Colors.grey,
-        textAlign: TextAlign.center,
-      ));
-    }
-    return CustomAnimatedBottomBar(
-      containerHeight: 56,
-      selectedIndex: controller.selectedIndex,
-      showElevation: true,
-      itemCornerRadius: 24,
-      curve: Curves.easeInOutQuart,
-      onItemSelected: (index) => {
-        pageController.page.value = pages[index].page,
-        controller.selectIndex(index)
-      },
-      items: items,
+    return MaterialApp(
+      theme: ThemeData.light(),
+      themeMode: ThemeMode.light,
+      home: Scaffold(
+        body: Center(
+          child: TabView(
+            controller: controller,
+            borderRadius: const BorderRadius.all(Radius.circular(5)),
+            borderColor: Theme.of(context).primaryColor,
+            borderWidth: 0.5,
+          ),
+        ),
+      ),
     );
-  }
-
-  Widget _textTypeTabBar5tabs(
-      BuildContext context, SidebarXController controller) {
-    final List<BottomNavigationBarItem> tabs = [];
-    for (int i = 0; i < pages.length; i++) {
-      tabs.add(BottomNavigationBarItem(
-        icon: Icon(pages[i].icon),
-        label: pages[i].label,
-      ));
-    }
-    return BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: controller.selectedIndex,
-        onTap: (int index) {
-          setState(() {
-            controller.selectIndex(index);
-          });
-        },
-        items: tabs);
-  }
-
-  String _getTitleByIndex(int index) {
-    if (index >= pages.length) {
-      return "";
-    }
-    return pages[index].label;
   }
 }
 
-class _Screen extends StatelessWidget {
-  const _Screen({
+class TabView extends StatefulWidget {
+  final double? height;
+  final double? maxWidth;
+  final tab.TabController controller;
+  final BorderRadius? borderRadius;
+  final double? borderWidth;
+  final Color? borderColor;
+  final Color? selectedColor;
+  const TabView({
     super.key,
-    this.page,
+    required this.controller,
+    this.height = 32,
+    this.maxWidth = 100,
+    this.borderRadius = const BorderRadius.all(Radius.circular(0)),
+    this.borderWidth = 1,
+    this.borderColor = Colors.black,
+    this.selectedColor,
   });
 
-  final Widget? page;
+  @override
+  State<StatefulWidget> createState() {
+    return _TabViewState();
+  }
+}
+
+class _TabViewState extends State<TabView> with SingleTickerProviderStateMixin {
+  ScrollController scrollController = ScrollController();
+
+  @override
+  void initState() {
+    widget.controller.addListener(_onSelected);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onSelected);
+    super.dispose();
+  }
+
+  void _onSelected() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      itemBuilder: (BuildContext context, int index) {
-        return Container(
-          color: Colors.transparent,
-          child: page,
-        );
-      },
+    List<Widget> children = [];
+    widget.controller.items.asMap().forEach((index, item) {
+      BorderRadius? borderRadius;
+      Border? border;
+      if (widget.borderRadius != null) {
+        if (widget.controller.items.length == 1) {
+          borderRadius = widget.borderRadius!;
+        } else if (index == 0) {
+          borderRadius = BorderRadius.only(
+              topLeft: widget.borderRadius!.topLeft,
+              bottomLeft: widget.borderRadius!.bottomLeft);
+          border = Border(
+              right: BorderSide(
+                  color: widget.borderColor!, width: widget.borderWidth! / 2));
+        } else if (index == widget.controller.items.length - 1) {
+          borderRadius = BorderRadius.only(
+              topRight: widget.borderRadius!.topRight,
+              bottomRight: widget.borderRadius!.bottomRight);
+          border = Border(
+              left: BorderSide(
+                  color: widget.borderColor!, width: widget.borderWidth! / 2));
+        }
+      }
+
+      children.add(TabWidget(
+        title: item.label,
+        leading: Icon(
+          item.icon,
+        ),
+        closeable: true,
+        onClose: () {
+          widget.controller.removeItem(index);
+        },
+        onClick: () {
+          widget.controller.setSelectedIndex(index);
+        },
+        height: widget.height!,
+        maxWidth: widget.maxWidth!,
+        borderRadius: borderRadius,
+        border: border,
+        selected: index == widget.controller.selectedIndex,
+        selectedColor: widget.selectedColor ?? Theme.of(context).primaryColor,
+      ));
+    });
+    return Scrollbar(
+        thumbVisibility: true,
+        controller: scrollController,
+        child: SingleChildScrollView(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          child: MyTabViewWidget(
+            borderRadius: widget.borderRadius,
+            height: widget.height!,
+            maxWidth: widget.maxWidth!,
+            borderColor: widget.borderColor!,
+            borderWidth: widget.borderWidth!,
+            children: children,
+          ),
+        ));
+  }
+}
+
+class MyTabViewWidget extends MultiChildRenderObjectWidget {
+  BorderRadius? borderRadius;
+  double height;
+  double maxWidth;
+  Color borderColor;
+  double borderWidth;
+  MyTabViewWidget({
+    super.key,
+    required super.children,
+    this.borderRadius,
+    required this.height,
+    required this.maxWidth,
+    required this.borderColor,
+    required this.borderWidth,
+  });
+
+  @override
+  TabRenderBox createRenderObject(BuildContext context) {
+    return TabRenderBox(
+      borderRadius: borderRadius,
+      height: height,
+      maxWidth: maxWidth,
+      borderColor: borderColor,
+      borderWidth: borderWidth,
     );
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, covariant TabRenderBox renderObject) {
+    renderObject
+      ..borderRadius = borderRadius
+      ..height = height
+      ..maxWidth = maxWidth;
+  }
+
+  @override
+  MultiChildRenderObjectElement createElement() {
+    return _TabViewElement(this);
+  }
+}
+
+class _TabViewElement extends MultiChildRenderObjectElement {
+  _TabViewElement(MultiChildRenderObjectWidget widget) : super(widget);
+
+  @override
+  void insertRenderObjectChild(RenderObject child, dynamic slot) {
+    final parentData =
+        child.parentData as BoxParentData? ?? TabLayoutParentData();
+    child.parentData = parentData;
+    super.insertRenderObjectChild(child, slot);
+  }
+}
+
+class TabLayoutParentData extends ContainerBoxParentData<RenderBox> {
+  bool visible = false;
+  bool selected = false;
+
+  /// Resets all values.
+  void reset() {
+    visible = false;
+    selected = false;
+  }
+}
+
+class TabRenderBox extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, TabLayoutParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, TabLayoutParentData> {
+  BorderRadius? borderRadius;
+  double height;
+  double maxWidth;
+  Color borderColor;
+  double borderWidth;
+
+  TabRenderBox({
+    this.borderRadius,
+    required this.height,
+    required this.maxWidth,
+    required this.borderColor,
+    required this.borderWidth,
+  });
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return defaultHitTestChildren(result, position: position);
+  }
+
+  @override
+  void performLayout() {
+    double offsetX = 0;
+
+    // Layout children
+    for (RenderBox child in getChildrenAsList()) {
+      child.layout(BoxConstraints(maxWidth: constraints.maxWidth),
+          parentUsesSize: true);
+      final TabLayoutParentData childParentData =
+          child.parentData! as TabLayoutParentData;
+      childParentData.offset = Offset(offsetX, 0);
+      offsetX += child.size.width;
+    }
+
+    // Set the size of the TabRenderBox
+    size = Size(offsetX, height);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    var children = getChildrenAsList();
+    if (children.isEmpty) return;
+    final rrect = RRect.fromRectAndCorners(
+      offset & size,
+      topLeft: borderRadius != null ? borderRadius!.topLeft : Radius.zero,
+      topRight: borderRadius != null ? borderRadius!.topRight : Radius.zero,
+      bottomLeft: borderRadius != null ? borderRadius!.bottomLeft : Radius.zero,
+      bottomRight:
+          borderRadius != null ? borderRadius!.bottomRight : Radius.zero,
+    );
+
+    final Paint paint = Paint()
+      ..color = borderColor
+      ..strokeWidth = borderWidth
+      ..style = PaintingStyle.stroke;
+    context.canvas.drawRRect(rrect, paint);
+
+    for (RenderBox child in children) {
+      final TabLayoutParentData childParentData =
+          child.parentData! as TabLayoutParentData;
+      context.paintChild(child, childParentData.offset + offset);
+    }
+  }
+}
+
+class TabWidget extends StatelessWidget {
+  final String title;
+  final Widget? leading;
+  final bool? closeable;
+  final double? height;
+  final double? maxWidth;
+  final Function? onClick;
+  final Function? onClose;
+  final BorderRadius? borderRadius;
+  final Border? border;
+  final bool? selected;
+  final Color? selectedColor;
+
+  TabWidget({
+    super.key,
+    required this.title,
+    this.leading,
+    this.closeable = true,
+    this.height = 32,
+    this.maxWidth = 100,
+    this.onClick,
+    this.onClose,
+    this.borderRadius,
+    this.border,
+    this.selected = false,
+    this.selectedColor,
+  }) {
+    if (closeable! && onClose == null) {
+      throw Exception("Closeable is true but onClose is null");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      return InkWell(
+        borderRadius: borderRadius,
+        hoverColor: const Color.fromARGB(255, 207, 205, 205),
+        onTap: () {
+          if (onClick != null) {
+            onClick!();
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: border,
+              color: selected! ? selectedColor : Colors.transparent),
+          constraints: const BoxConstraints(maxWidth: 100),
+          height: height,
+          child: Row(
+            children: [
+              leading!,
+              const SizedBox(
+                width: 4,
+              ),
+              Expanded(
+                  child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              )),
+              if (closeable!)
+                Container(
+                  margin: const EdgeInsets.all(4),
+                  width: 24,
+                  height: 24,
+                  child: IconButton(
+                    onPressed: () {
+                      if (onClose != null) {
+                        onClose!();
+                      }
+                    },
+                    padding: const EdgeInsets.all(4),
+                    icon: const Icon(Icons.close),
+                    iconSize: 16,
+                  ),
+                )
+            ],
+          ),
+        ),
+      );
+    });
   }
 }

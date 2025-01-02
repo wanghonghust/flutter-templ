@@ -10,8 +10,10 @@ import 'package:kms/utils/index.dart';
 import 'package:kms/widget/custom_tree/custom_tree.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:pluto_layout/pluto_layout.dart';
+import 'package:tabbed_view/tabbed_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kms/widget/custom_markdown/custom_markdown.dart';
+import 'package:path/path.dart' as path;
 
 class MarkdownEditor extends StatefulWidget {
   const MarkdownEditor({Key? key}) : super(key: key);
@@ -23,7 +25,13 @@ class MarkdownEditor extends StatefulWidget {
 class _MarkdownEditorState extends State<MarkdownEditor> {
   String content = "";
   List<TreeNode<FileSystemEntity>> _nodes = [];
+  late TabbedViewController _controller;
   final _treeViewKey = GlobalKey<TreeViewState<FileSystemEntity>>();
+  @override
+  void initState() {
+    super.initState();
+    _controller = TabbedViewController([]);
+  }
 
   void _onSelectionChanged(List<FileSystemEntity?> selectedValues) {
     print('Selected node values: $selectedValues');
@@ -31,7 +39,34 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final MultiSplitViewThemeData themeData = MultiSplitViewThemeData(
+    TabbedView tabbedView = TabbedView(controller: _controller,closeButtonTooltip: "Close Tab",);
+
+    TabbedViewThemeData themeData = TabbedViewThemeData();
+    themeData.tabsArea
+      ..border =
+          Border.all(color: const Color.fromARGB(76, 205, 205, 205), width: 1)
+      ..middleGap = 0;
+
+    Radius radius = const Radius.circular(0);
+    BorderRadiusGeometry? borderRadius = BorderRadius.all(radius);
+
+    themeData.tab
+      ..padding = EdgeInsets.fromLTRB(10, 4, 10, 4)
+      ..hoverButtonBackground = const BoxDecoration(
+          color: Color.fromARGB(142, 89, 89, 89),
+          borderRadius: BorderRadius.all(Radius.circular(3)))
+      ..buttonsOffset = 8
+      ..decoration = BoxDecoration(
+          shape: BoxShape.rectangle,
+          color: Colors.green[100],
+          borderRadius: borderRadius)
+      ..selectedStatus.decoration =
+          BoxDecoration(color: Colors.green[200], borderRadius: borderRadius)
+      ..highlightedStatus.decoration =
+          BoxDecoration(color: Colors.green[50], borderRadius: borderRadius);
+    themeData.menu..color = const Color.fromARGB(255, 72, 72, 72);
+
+    final MultiSplitViewThemeData splitThemeData = MultiSplitViewThemeData(
         dividerPainter: DividerPainters.grooved1(
             highlightedThickness: 3,
             color: Theme.of(context).primaryColorLight,
@@ -79,10 +114,16 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                           File file = File(node.value!.path);
                           if (await file.exists() &&
                               file.path.endsWith('.md')) {
-                            setState(() {
-                              content = file.readAsStringSync();
-                            });
-                          }
+                            var text = file.readAsStringSync();
+                            _controller.addTab(
+                              TabData(
+                                leading: (_,__)=>const Icon(Icons.description),
+                                  keepAlive: true,
+                                  text: path.basename(file.path),
+                                  content: _buildMarkdown(text)),
+                            );
+                          } else {}
+                          setState(() {});
                         }),
                   ),
                 )
@@ -90,7 +131,8 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
           data: 'blue'),
       Area(
           flex: 1,
-          builder: (context, area) => _buildMarkdown(context),
+          builder: (context, area) =>
+              TabbedViewTheme(data: themeData, child: tabbedView),
           data: 'green')
     ]);
 
@@ -98,7 +140,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
       controller: controller,
     );
     MultiSplitViewTheme theme =
-        MultiSplitViewTheme(data: themeData, child: multiSplitView);
+        MultiSplitViewTheme(data: splitThemeData, child: multiSplitView);
     return Scaffold(
       body: theme,
       floatingActionButton: FloatingActionButton(
@@ -117,9 +159,9 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
     );
   }
 
-  Widget _buildMarkdown(BuildContext context) {
+  Widget _buildMarkdown(String text) {
     return Markdown(
-      data: content,
+      data: text,
       selectable: true,
       shrinkWrap: true,
       onTapLink: (text, href, title) async {
@@ -168,7 +210,6 @@ class _DemoPageState extends State<DemoPage> {
   List<TreeNode<FileSystemEntity>> _nodes = [];
 
   late int _index = 0;
-  
 
   @override
   Widget build(BuildContext context) {
@@ -193,8 +234,7 @@ class _DemoPageState extends State<DemoPage> {
                 title: "文件夹",
                 sizeResolver: const PlutoLayoutTabItemSizeFlexible(0.7),
                 tabViewWidget: const Padding(
-                    padding: EdgeInsets.all(15),
-                    child: FolderTree()),
+                    padding: EdgeInsets.all(15), child: FolderTree()),
               ),
               PlutoLayoutTabItem(
                 id: "搜索",

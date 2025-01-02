@@ -1,71 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:multi_split_view/multi_split_view.dart';
-import 'package:uuid/uuid.dart';
-
-// 主应用类
-class TabVBarDemo extends StatefulWidget {
-  @override
-  _TabVBarDemoState createState() => _TabVBarDemoState();
-}
-
-// 主应用状态类
-class _TabVBarDemoState extends State<TabVBarDemo> {
-  // 初始化TabController，包含三个TabItem
-  TabController tabController = TabController(selectedIndex: 0, items: [
-    TabItem(id: "1", label: "Tab 1dssdfffffffffffff"),
-    TabItem(id: "2", label: "Tab 2sdfsfffffffff"),
-    TabItem(id: "3", label: "Tab 3sdfsdfsdfsdf"),
-  ]);
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      child: Center(
-        child: Column(
-          children: [
-            // 添加Tab按钮
-            IconButton(
-                onPressed: () {
-                  String id = Uuid().v4().toString();
-                  tabController.addItem(
-                      TabItem(
-                          id: id,
-                          label: "Tab ${tabController.items.length + 1}"),
-                      selectLast: true);
-                },
-                icon: const Icon(Icons.add)),
-            // 移除第一个Tab按钮
-            IconButton(
-                onPressed: () {
-                  tabController.removeItem(0);
-                },
-                icon: const Icon(Icons.remove)),
-            // 查找TabItem按钮
-            IconButton(
-                onPressed: () {
-                  var item = tabController.getItemById("1");
-                  print(item);
-                },
-                icon: const Icon(Icons.search)),
-            // 自定义TabBar
-            Container(
-                child: CustomTabBar(
-              tabController: tabController,
-              onTabClose: (item, index, details) => {
-                print("close:$item"),
-              },
-              onTabClick: (item, index, details) => {print("click:$item")},
-              onTabRightClick: (item, index, details) =>
-                  {print("right click:$item")},
-              tabHeight: 32,
-              tabWidth: 100,
-            ))
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class TabBarThemeData {
   final Color? backgroundColor;
@@ -74,6 +11,7 @@ class TabBarThemeData {
   final Color? textColor;
   final Color? activeTextColor;
   final Color? hoverTextColor;
+  final Color? iconColor;
   final Color? closeIconColor;
   final Color? borderColor;
 
@@ -84,8 +22,9 @@ class TabBarThemeData {
       activeBackgroundColor: const Color.fromARGB(255, 67, 85, 185),
       hoverBackgroundColor: const Color.fromARGB(255, 235, 237, 244),
       textColor: Colors.black,
-      activeTextColor: Colors.black,
+      activeTextColor: Colors.white,
       hoverTextColor: Colors.black,
+      iconColor: Colors.black,
       closeIconColor: const Color.fromARGB(108, 133, 133, 133),
       borderColor: const Color.fromARGB(167, 202, 202, 202),
     );
@@ -97,8 +36,9 @@ class TabBarThemeData {
       activeBackgroundColor: const Color.fromARGB(255, 182, 191, 250),
       hoverBackgroundColor: const Color.fromARGB(255, 30, 31, 36),
       textColor: Colors.white,
-      activeTextColor: Colors.white,
+      activeTextColor: Colors.black,
       hoverTextColor: Colors.white,
+      iconColor: Colors.white,
       closeIconColor: const Color.fromARGB(138, 148, 148, 148),
       borderColor: const Color.fromARGB(61, 30, 30, 30),
     );
@@ -114,6 +54,7 @@ class TabBarThemeData {
     this.hoverTextColor = Colors.black,
     this.closeIconColor = Colors.red,
     this.borderColor = Colors.grey,
+    this.iconColor = Colors.black,
   });
 }
 
@@ -121,17 +62,23 @@ class TabBarThemeData {
 class TabItem {
   String id;
   String label;
+  String? toolTip;
   IconData? icon;
   dynamic data;
-  TabItem({required this.id, required this.label, this.data});
+  TabItem(
+      {required this.id,
+      required this.label,
+      this.toolTip,
+      this.data,
+      this.icon});
   @override
   String toString() {
-    return "TabItem{id: $id, label: $label}";
+    return "TabItem{id: $id, label: $label,toolTip: $toolTip icon: $icon, data: $data}";
   }
 }
 
 // TabBar事件类型
-typedef TabBarEvent = Function(TabItem item, int index, TapUpDetails details);
+typedef TabBarEvent = Function(TabItem item, int index, Offset offset);
 
 // TabController类
 class TabController extends ChangeNotifier {
@@ -170,6 +117,13 @@ class TabController extends ChangeNotifier {
     return null;
   }
 
+  TabItem? getItemByIndex(int index) {
+    if (index >= 0 && index < items.length) {
+      return items[index];
+    }
+    return null;
+  }
+
   // 根据ID选择TabItem
   void selectItemById(String id) {
     int index = items.indexWhere((item) => item.id == id);
@@ -203,17 +157,21 @@ class TabController extends ChangeNotifier {
     if (index >= 0 && index < items.length) {
       var item = items.removeAt(index);
       if (items.isEmpty) {
+        selectedIndex = -1;
         notifyListeners();
         return item;
       }
       if (selectedIndex == index) {
         selectedIndex = items.length - 1;
+        notifyListeners();
       } else if (selectedIndex > index) {
         selectedIndex -= 1;
+        notifyListeners();
       }
       notifyListeners();
       return item;
     }
+    notifyListeners();
     return null;
   }
 
@@ -233,6 +191,13 @@ class TabController extends ChangeNotifier {
     return null;
   }
 
+  String getTooltipText(int index) {
+    if (index >= 0 && index < items.length) {
+      return items[index].toolTip ?? "";
+    }
+    return "";
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -248,12 +213,14 @@ class StateController extends ChangeNotifier {
   int _pressedIndex = -1;
   int _closeIndex = -1;
   int _rightIndex = -1;
+  int _tooltipIndex = -1;
   bool _hoveredIcon = false;
 
   int get hoveredIndex => _hoveredIndex;
   int get pressedIndex => _pressedIndex;
   int get closeIndex => _closeIndex;
   int get rightIndex => _rightIndex;
+  int get tooltipIndex => _tooltipIndex;
   bool get hoveredIcon => _hoveredIcon;
 
   set hoveredIndex(int value) {
@@ -273,6 +240,11 @@ class StateController extends ChangeNotifier {
 
   set rightIndex(int value) {
     _rightIndex = value;
+    notifyListeners();
+  }
+
+  set tooltipIndex(int value) {
+    _tooltipIndex = value;
     notifyListeners();
   }
 
@@ -305,8 +277,11 @@ class CustomTabBar extends StatefulWidget {
   final TabBarEvent? onTabClose;
   final TabBarEvent? onTabRightClick;
   final TabBarThemeData? theme;
-  const CustomTabBar({
-    super.key,
+  final bool? isCloseable;
+  final BorderRadius? borderRadius;
+  final GlobalKey key = GlobalKey();
+
+  CustomTabBar({
     required this.tabController,
     this.onTabClick,
     this.onTabClose,
@@ -314,7 +289,9 @@ class CustomTabBar extends StatefulWidget {
     this.tabWidth = 100,
     this.tabHeight = 32,
     this.theme,
-  });
+    this.isCloseable = false,
+    this.borderRadius = BorderRadius.zero,
+  }) {}
 
   @override
   _CustomTabBarState createState() => _CustomTabBarState();
@@ -324,16 +301,15 @@ class CustomTabBar extends StatefulWidget {
 class _CustomTabBarState extends State<CustomTabBar>
     with SingleTickerProviderStateMixin {
   final StateController _stateController = StateController();
-  late TabController _tabController;
-  final ScrollController _scrollController = ScrollController();
-  late TabBarThemeData _theme;
 
+  final ScrollController _scrollController = ScrollController();
+  Timer? _timer;
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
   @override
   void initState() {
     super.initState();
-    _theme = widget.theme ?? TabBarThemeData();
-    _tabController = widget.tabController;
-    _tabController.addListener(_updateUi);
+    widget.tabController.addListener(_updateUi);
     _stateController.addListener(_updateUi);
   }
 
@@ -344,34 +320,37 @@ class _CustomTabBarState extends State<CustomTabBar>
   @override
   void dispose() {
     super.dispose();
-    _tabController.removeListener(_updateUi);
+    widget.tabController.removeListener(_updateUi);
     _stateController.removeListener(_updateUi);
-    _tabController.dispose();
     _stateController.dispose();
     _scrollController.dispose();
+    _timer?.cancel();
   }
 
   // 更新鼠标悬停索引
   void _updateHoveredIndex(Offset position) {
-    for (int i = 0; i < _tabController.items.length; i++) {
-      double startX = i * widget.tabWidth!;
+    bool find = false;
+    for (int i = 0; i < widget.tabController.items.length; i++) {
+      double startX = i * widget.tabWidth! - _scrollController.offset;
       Rect buttonRect =
           Rect.fromLTWH(startX, 0, widget.tabWidth!, widget.tabHeight!);
       if (buttonRect.contains(position)) {
         _stateController.hoveredIndex = i;
-        return;
+        find = true;
+        break;
       }
     }
-    _stateController.hoveredIndex = -1;
+    if (!find) {
+      _stateController.hoveredIndex = -1;
+    }
   }
 
   // 更新鼠标悬停在关闭图标上的索引
   void _updateHoveredIconIndex(Offset position) {
-    for (int i = 0; i < _tabController.items.length; i++) {
-      double startX = (i + 1) * widget.tabWidth! - widget.tabHeight!;
-      if (startX < 0) {
-        return;
-      }
+    for (int i = 0; i < widget.tabController.items.length; i++) {
+      double startX = (i + 1) * widget.tabWidth! -
+          widget.tabHeight! -
+          _scrollController.offset;
       Rect closeIconRect =
           Rect.fromLTWH(startX, 0, widget.tabHeight!, widget.tabHeight!);
       if (closeIconRect.contains(position)) {
@@ -386,14 +365,15 @@ class _CustomTabBarState extends State<CustomTabBar>
   void _onTapDown(TapDownDetails details) {
     final tabWidth = widget.tabWidth!;
     final tabHeight = widget.tabHeight!;
-    final closeIconOffset = tabWidth - tabHeight;
+    final closeIconOffset =
+        widget.isCloseable! ? tabWidth - tabHeight : tabWidth;
 
-    for (int i = 0; i < _tabController.items.length; i++) {
-      final startX = i * tabWidth;
-
+    for (int i = 0; i < widget.tabController.items.length; i++) {
+      final startX = i * tabWidth - _scrollController.offset;
       // 定义关闭图标区域
-      if (Rect.fromLTWH(startX + closeIconOffset, 0, tabHeight, tabHeight)
-          .contains(details.localPosition)) {
+      if (widget.isCloseable! &&
+          Rect.fromLTWH(startX + closeIconOffset, 0, tabHeight, tabHeight)
+              .contains(details.localPosition)) {
         _stateController.closeIndex = i;
         _stateController.pressedIndex = -1;
         return;
@@ -404,7 +384,13 @@ class _CustomTabBarState extends State<CustomTabBar>
           .contains(details.localPosition)) {
         _stateController.pressedIndex = i;
         _stateController.closeIndex = -1;
-        _tabController.setSelectedIndex(i);
+        widget.tabController.setSelectedIndex(_stateController.pressedIndex);
+        if (widget.onTabClick != null) {
+          widget.onTabClick!(
+              widget.tabController.items[_stateController.pressedIndex],
+              _stateController.pressedIndex,
+              details.localPosition);
+        }
         return;
       }
     }
@@ -419,8 +405,8 @@ class _CustomTabBarState extends State<CustomTabBar>
     final tabWidth = widget.tabWidth!;
     final tabHeight = widget.tabHeight!;
 
-    for (int i = 0; i < _tabController.items.length; i++) {
-      final startX = i * tabWidth;
+    for (int i = 0; i < widget.tabController.items.length; i++) {
+      final startX = i * tabWidth - _scrollController.offset;
       // 定义按钮区域
       if (Rect.fromLTWH(startX, 0, tabWidth, tabHeight)
           .contains(details.localPosition)) {
@@ -437,12 +423,12 @@ class _CustomTabBarState extends State<CustomTabBar>
   void _onSecondaryTapUp(TapUpDetails details) {
     if (_stateController.rightIndex != -1) {
       assert(_stateController.rightIndex >= 0 &&
-          _stateController.rightIndex < _tabController.items.length);
+          _stateController.rightIndex < widget.tabController.items.length);
       if (widget.onTabRightClick != null) {
         widget.onTabRightClick!(
-            _tabController.items[_stateController.rightIndex],
+            widget.tabController.items[_stateController.rightIndex],
             _stateController.rightIndex,
-            details);
+            details.localPosition);
       }
     }
     _stateController.rightIndex = -1;
@@ -450,21 +436,15 @@ class _CustomTabBarState extends State<CustomTabBar>
 
   // 处理鼠标抬起事件
   void _onTapUp(TapUpDetails details) {
-    if (_stateController.pressedIndex != -1) {
-      assert(_stateController.pressedIndex >= 0 &&
-          _stateController.pressedIndex < _tabController.items.length);
-      if (widget.onTabClick != null) {
-        widget.onTabClick!(_tabController.items[_stateController.pressedIndex],
-            _stateController.pressedIndex, details);
-      }
-    }
     if (_stateController.closeIndex != -1) {
       assert(_stateController.closeIndex >= 0 &&
-          _stateController.closeIndex < _tabController.items.length);
-      if (widget.onTabClose != null) {
-        var item = _tabController.removeItem(_stateController.closeIndex);
+          _stateController.closeIndex < widget.tabController.items.length);
+
+      if (widget.onTabClose != null && widget.isCloseable!) {
+        var item = widget.tabController.removeItem(_stateController.closeIndex);
         if (widget.onTabClose != null && item != null) {
-          widget.onTabClose!(item, _stateController.closeIndex, details);
+          widget.onTabClose!(
+              item, _stateController.closeIndex, details.localPosition);
         }
       }
     }
@@ -474,65 +454,96 @@ class _CustomTabBarState extends State<CustomTabBar>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onSecondaryTapDown: _onSecondaryTapDown,
-      onSecondaryTapUp: _onSecondaryTapUp,
-      onTapUp: _onTapUp,
-      onTapCancel: () => _stateController.pressedIndex = -1,
-      child: MouseRegion(
-          onHover: (event) {
-            _updateHoveredIndex(event.localPosition);
-            _updateHoveredIconIndex(event.localPosition);
-          },
-          onExit: (event) => _updateHoveredIndex(event.localPosition),
-          child: Scrollbar(
-            thumbVisibility: true,
-            controller: _scrollController,
-            scrollbarOrientation: ScrollbarOrientation.bottom,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              controller: _scrollController,
-              child: CustomPaint(
-                size: Size(_tabController.items.length * widget.tabWidth!,
-                    widget.tabHeight!), // 设置画布大小
-                painter: TabBarPainter(
-                    selectedIndex: _tabController.selectedIndex,
-                    items: _tabController.items,
-                    theme: widget.theme ??
-                        (Theme.of(context).brightness == Brightness.dark
-                            ? TabBarThemeData.dark
-                            : TabBarThemeData.light),
-                    tabWidth: widget.tabWidth!,
-                    tabHeight: widget.tabHeight!,
-                    borderRadius: const BorderRadius.all(Radius.circular(10)),
-                    stateController: _stateController),
-              ),
-            ),
-          )),
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      return GestureDetector(
+          onTapDown: _onTapDown,
+          onSecondaryTapDown: _onSecondaryTapDown,
+          onSecondaryTapUp: _onSecondaryTapUp,
+          onTapUp: _onTapUp,
+          onTapCancel: () => _stateController.pressedIndex = -1,
+          child: CompositedTransformTarget(
+            link: _layerLink,
+            child: MouseRegion(
+                onHover: (event) {
+                  _updateHoveredIndex(event.localPosition);
+                  _updateHoveredIconIndex(event.localPosition);
+                },
+                onExit: (event) {
+                  _stateController.hoveredIndex = -1;
+                },
+                child: Scrollbar(
+                  thickness: 5,
+                  thumbVisibility: true,
+                  controller: _scrollController,
+                  scrollbarOrientation: ScrollbarOrientation.bottom,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    scrollDirection: Axis.horizontal,
+                    controller: _scrollController,
+                    clipBehavior: Clip.none,
+                    child: CustomPaint(
+                      size: Size(
+                          widget.tabController.items.length * widget.tabWidth!,
+                          widget.tabHeight!), // 设置画布大小
+                      painter: TabBarPainter(
+                          key: widget.key,
+                          selectedIndex: widget.tabController.selectedIndex,
+                          items: widget.tabController.items,
+                          theme: widget.theme ??
+                              (Theme.of(context).brightness == Brightness.dark
+                                  ? TabBarThemeData.dark
+                                  : TabBarThemeData.light),
+                          tabWidth: widget.tabWidth!,
+                          tabHeight: widget.tabHeight!,
+                          maxWidth: MediaQuery.of(context).size.width,
+                          maxHeight: MediaQuery.of(context).size.height,
+                          isCloseable: widget.isCloseable!,
+                          borderRadius: widget.borderRadius!,
+                          stateController: _stateController,
+                          scrollController: _scrollController),
+                    ),
+                  ),
+                )),
+          ));
+    });
   }
 }
 
 // TabBar的绘制类
 class TabBarPainter extends CustomPainter {
+  final GlobalKey key;
   final StateController stateController;
+  final ScrollController scrollController;
   final BorderRadius borderRadius;
   final TabBarThemeData theme;
   final List<TabItem> items;
   final int selectedIndex;
   final double tabWidth;
   final double tabHeight;
+  final bool isCloseable;
+  final double maxWidth;
+  final double maxHeight;
 
   TabBarPainter({
+    required this.key,
     required this.items,
     required this.stateController,
+    required this.scrollController,
     required this.theme,
     required this.selectedIndex,
     required this.tabWidth,
     required this.tabHeight,
+    required this.maxWidth,
+    required this.maxHeight,
+    required this.isCloseable,
     this.borderRadius = BorderRadius.zero,
   });
+
+  Offset _getPainterPosition() {
+    final RenderBox renderBox =
+        key.currentContext?.findRenderObject() as RenderBox;
+    return renderBox.localToGlobal(Offset.zero);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -562,6 +573,25 @@ class TabBarPainter extends CustomPainter {
     }
   }
 
+  void _drawLeadingIcon(
+      Canvas canvas, Offset offset, TabItem item, int index, Color color) {
+    if (item.icon == null) {
+      return;
+    }
+    var icon = item.icon!;
+    TextPainter iconPainter = TextPainter(textDirection: TextDirection.ltr);
+    iconPainter.text = TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+            fontSize: 16.0, fontFamily: icon.fontFamily, color: color));
+    iconPainter.layout();
+    iconPainter.paint(
+        canvas,
+        offset +
+            Offset((tabHeight - iconPainter.width) / 2,
+                (tabHeight - iconPainter.height) / 2));
+  }
+
   // 绘制关闭按钮
   void _drawCloseButton(
       Canvas canvas, Offset offset, int index, Color color, Color fillColor) {
@@ -588,7 +618,8 @@ class TabBarPainter extends CustomPainter {
   }
 
   // 绘制文本
-  void _drawText(Canvas canvas, Offset offset, String text, Color color) {
+  void _drawText(
+      Canvas canvas, Offset offset, String text, Color color, bool hasIcon) {
     TextPainter textPainter = TextPainter(
         textDirection: TextDirection.ltr, maxLines: 1, ellipsis: "...");
     textPainter.text = TextSpan(text: text, style: TextStyle(color: color));
@@ -596,7 +627,9 @@ class TabBarPainter extends CustomPainter {
     textPainter.paint(
         canvas,
         offset +
-            Offset((tabWidth - tabHeight - textPainter.width + 10) / 2,
+            Offset(
+                (tabWidth - tabHeight - textPainter.width + 10) / 2 +
+                    (hasIcon ? tabHeight / 2 : 0),
                 (tabHeight - textPainter.height) / 2));
   }
 
@@ -605,14 +638,14 @@ class TabBarPainter extends CustomPainter {
       Canvas canvas, int index, TabItem item, bool isHovered, bool isPressed) {
     Offset offset = Offset(index * tabWidth, 0.0);
     Color fillColor = Colors.transparent;
-    Color _textColor = theme.textColor!;
+    Color textColor = theme.textColor!;
     if (isPressed || isHovered) {
       fillColor = theme.hoverBackgroundColor!;
-      _textColor = theme.activeTextColor!;
+      textColor = theme.hoverTextColor!;
     }
     if (index == selectedIndex) {
       fillColor = theme.activeBackgroundColor!;
-      _textColor = theme.activeTextColor!;
+      textColor = theme.activeTextColor!;
     }
 
     final Paint fillPaint = Paint()
@@ -645,9 +678,10 @@ class TabBarPainter extends CustomPainter {
                 ? borderRadius.bottomRight
                 : Radius.zero),
         strokePaint);
-    _drawText(canvas, offset, item.label, _textColor);
-    if (isHovered || selectedIndex == index) {
-      _drawCloseButton(canvas, offset, index, _textColor, fillColor);
+    _drawLeadingIcon(canvas, offset, item, index, theme.iconColor!);
+    _drawText(canvas, offset, item.label, textColor, item.icon != null);
+    if ((isHovered || selectedIndex == index) && isCloseable) {
+      _drawCloseButton(canvas, offset, index, textColor, fillColor);
     }
   }
 

@@ -36,6 +36,7 @@ dependencies:
   appflowy_editor: ^4.0.0
   pluto_layout: ^1.0.0
   ulid: ^2.0.1
+  tabbed_view: ^1.19.1
 
 dev_dependencies:
   flutter_test:
