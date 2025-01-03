@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:kms/models/page.dart';
@@ -23,6 +24,7 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 void main() async {
   await GetStorage.init();
   Get.put(GetxPageController());
+  // debugPaintSizeEnabled = true; 
   runApp(
     ChangeNotifierProvider(
       create: (context) =>

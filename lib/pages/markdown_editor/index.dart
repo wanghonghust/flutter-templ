@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:kms/pages/key_manager/asymmetric.dart';
 import 'package:kms/pages/markdown_editor/folder_tree.dart';
 import 'package:kms/pages/markdown_editor/hilighter.dart';
+import 'package:kms/pages/new_test/index.dart';
 import 'package:kms/utils/index.dart';
 import 'package:kms/widget/custom_tree/custom_tree.dart';
 import 'package:multi_split_view/multi_split_view.dart';
@@ -14,6 +15,7 @@ import 'package:tabbed_view/tabbed_view.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kms/widget/custom_markdown/custom_markdown.dart';
 import 'package:path/path.dart' as path;
+import 'package:kms/widget/tab_container/index.dart' as tab;
 
 class MarkdownEditor extends StatefulWidget {
   const MarkdownEditor({Key? key}) : super(key: key);
@@ -27,10 +29,24 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
   List<TreeNode<FileSystemEntity>> _nodes = [];
   late TabbedViewController _controller;
   final _treeViewKey = GlobalKey<TreeViewState<FileSystemEntity>>();
+  tab.TabController tabController =
+      tab.TabController(items: [], selectedIndex: 0);
+  List<Widget> markDownPages = [];
   @override
   void initState() {
     super.initState();
     _controller = TabbedViewController([]);
+    // tabController.addListener(_updateUi);
+  }
+
+  @override
+  void dispose() {
+    // tabController.removeListener(_updateUi);
+    super.dispose();
+  }
+
+  void _updateUi() {
+    setState(() {});
   }
 
   void _onSelectionChanged(List<FileSystemEntity?> selectedValues) {
@@ -39,33 +55,6 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
 
   @override
   Widget build(BuildContext context) {
-    TabbedView tabbedView = TabbedView(controller: _controller,closeButtonTooltip: "Close Tab",);
-
-    TabbedViewThemeData themeData = TabbedViewThemeData();
-    themeData.tabsArea
-      ..border =
-          Border.all(color: const Color.fromARGB(76, 205, 205, 205), width: 1)
-      ..middleGap = 0;
-
-    Radius radius = const Radius.circular(0);
-    BorderRadiusGeometry? borderRadius = BorderRadius.all(radius);
-
-    themeData.tab
-      ..padding = EdgeInsets.fromLTRB(10, 4, 10, 4)
-      ..hoverButtonBackground = const BoxDecoration(
-          color: Color.fromARGB(142, 89, 89, 89),
-          borderRadius: BorderRadius.all(Radius.circular(3)))
-      ..buttonsOffset = 8
-      ..decoration = BoxDecoration(
-          shape: BoxShape.rectangle,
-          color: Colors.green[100],
-          borderRadius: borderRadius)
-      ..selectedStatus.decoration =
-          BoxDecoration(color: Colors.green[200], borderRadius: borderRadius)
-      ..highlightedStatus.decoration =
-          BoxDecoration(color: Colors.green[50], borderRadius: borderRadius);
-    themeData.menu..color = const Color.fromARGB(255, 72, 72, 72);
-
     final MultiSplitViewThemeData splitThemeData = MultiSplitViewThemeData(
         dividerPainter: DividerPainters.grooved1(
             highlightedThickness: 3,
@@ -115,13 +104,23 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
                           if (await file.exists() &&
                               file.path.endsWith('.md')) {
                             var text = file.readAsStringSync();
-                            _controller.addTab(
-                              TabData(
-                                leading: (_,__)=>const Icon(Icons.description),
-                                  keepAlive: true,
-                                  text: path.basename(file.path),
-                                  content: _buildMarkdown(text)),
-                            );
+                            var item = tabController.getItemById(file.path);
+                            if (item == null) {
+                              tabController.addItem(
+                                selectLast: true,
+                                tab.TabItem(
+                                    icon: Icons.description,
+                                    toolTip: file.path,
+                                    id: file.path,
+                                    label: path.basename(file.path)),
+                              );
+                              markDownPages.add(MarkdownPage(
+                                text: text,
+                                key: ValueKey(file.path),
+                              ));
+                            } else {
+                              tabController.selectItemById(file.path);
+                            }
                           } else {}
                           setState(() {});
                         }),
@@ -131,8 +130,10 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
           data: 'blue'),
       Area(
           flex: 1,
-          builder: (context, area) =>
-              TabbedViewTheme(data: themeData, child: tabbedView),
+          builder: (context, area) => EditorView(
+                markDownPages: markDownPages,
+                tabController: tabController,
+              ),
           data: 'green')
     ]);
 
@@ -158,10 +159,73 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
       ),
     );
   }
+}
 
-  Widget _buildMarkdown(String text) {
+class EditorView extends StatefulWidget {
+  final List<Widget>? markDownPages;
+  final tab.TabController tabController;
+  const EditorView(
+      {super.key, this.markDownPages, required this.tabController});
+
+  @override
+  State<EditorView> createState() => _EditorViewState();
+}
+
+class _EditorViewState extends State<EditorView> {
+  @override
+  void initState() {
+    super.initState();
+    widget.tabController.addListener(_updateUi);
+  }
+
+  @override
+  void dispose() {
+    widget.tabController.removeListener(_updateUi);
+    super.dispose();
+  }
+
+  void _updateUi() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TabView(
+          controller: widget.tabController,
+          borderRadius: const BorderRadius.all(Radius.circular(10)),
+          borderColor: Theme.of(context).dividerColor,
+          borderWidth: 1,
+          closeable: true,
+          maxWidth: 150,
+          height: 32,
+        ),
+        Expanded(
+            child: IndexedStack(
+          index: widget.tabController.selectedIndex,
+          children: widget.markDownPages ?? [],
+        ))
+      ],
+    );
+  }
+}
+
+class MarkdownPage extends StatefulWidget {
+  final String? text;
+  const MarkdownPage({super.key, this.text});
+  @override
+  State<MarkdownPage> createState() => _MarkdownPageState();
+}
+
+class _MarkdownPageState extends State<MarkdownPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
     return Markdown(
-      data: text,
+      data: widget.text ?? '',
       selectable: true,
       shrinkWrap: true,
       onTapLink: (text, href, title) async {
@@ -196,6 +260,9 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
       },
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class DemoPage extends StatefulWidget {

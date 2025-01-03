@@ -13,9 +13,10 @@ class TabTestPage extends StatefulWidget {
 class TabTestPageState extends State<TabTestPage>
     with TickerProviderStateMixin {
   tab.TabController controller = tab.TabController(items: [
-    tab.TabItem(label: "Tab1", icon: Icons.home, id: "1", toolTip: "Home"),
-    tab.TabItem(label: "Tab2", icon: Icons.search, id: "2", toolTip: "Search"),
-    tab.TabItem(label: "Tab3", icon: Icons.abc, id: "3", toolTip: "ABC"),
+    tab.TabItem(
+        label: "Tab1asdasdasdas", icon: Icons.home, id: "1", toolTip: "Home"),
+    tab.TabItem(label: "Tab2asas", icon: null, id: "2", toolTip: "Search"),
+    tab.TabItem(label: "Tab3aa", icon: Icons.abc, id: "3", toolTip: "ABC"),
     tab.TabItem(
         label: "Tab4", icon: Icons.dangerous, id: "4", toolTip: "Dangerous"),
     tab.TabItem(
@@ -47,7 +48,19 @@ class TabTestPageState extends State<TabTestPage>
               borderColor: Theme.of(context).primaryColor,
               borderWidth: 1,
               closeable: true,
-            )
+              maxWidth: 150,
+              height: 50,
+            ),
+            Container(
+              color: Colors.amber,
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: const Text("asdasasdasd"),
+            ),
+            Container(
+              color: Colors.amber,
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: const Text("asdasa"),
+            ),
           ],
         ),
       ),
@@ -65,17 +78,19 @@ class TabView extends StatefulWidget {
   final Color? selectedColor;
   final Color? hoverColor;
   final bool? closeable;
+  final String? closeHoverText;
   const TabView({
     super.key,
     required this.controller,
     this.height = 32,
-    this.maxWidth = 100,
+    this.maxWidth = 200,
     this.borderRadius = const BorderRadius.all(Radius.circular(0)),
     this.borderWidth = 1,
     this.borderColor = Colors.black,
     this.selectedColor,
     this.hoverColor,
     this.closeable = true,
+    this.closeHoverText,
   });
 
   @override
@@ -112,35 +127,51 @@ class _TabViewState extends State<TabView> with SingleTickerProviderStateMixin {
       if (widget.borderRadius != null) {
         if (widget.controller.items.length == 1) {
           borderRadius = widget.borderRadius!;
+          border = Border.all(
+              color: widget.borderColor!, width: widget.borderWidth!);
         } else if (index == 0) {
           borderRadius = BorderRadius.only(
               topLeft: widget.borderRadius!.topLeft,
               bottomLeft: widget.borderRadius!.bottomLeft);
           border = Border(
+              left: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!),
               right: BorderSide(
-                  color: widget.borderColor!, width: widget.borderWidth! / 2));
+                  width: widget.borderWidth! / 2, color: widget.borderColor!),
+              top: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!),
+              bottom: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!));
         } else if (index == widget.controller.items.length - 1) {
           borderRadius = BorderRadius.only(
               topRight: widget.borderRadius!.topRight,
               bottomRight: widget.borderRadius!.bottomRight);
           border = Border(
               left: BorderSide(
-                  color: widget.borderColor!, width: widget.borderWidth! / 2));
+                  width: widget.borderWidth! / 2, color: widget.borderColor!),
+              right: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!),
+              top: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!),
+              bottom: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!));
         } else {
           border = Border(
               left: BorderSide(
-                  color: widget.borderColor!, width: widget.borderWidth! / 2),
+                  width: widget.borderWidth! / 2, color: widget.borderColor!),
               right: BorderSide(
-                  color: widget.borderColor!, width: widget.borderWidth! / 2));
+                  width: widget.borderWidth! / 2, color: widget.borderColor!),
+              top: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!),
+              bottom: BorderSide(
+                  width: widget.borderWidth!, color: widget.borderColor!));
         }
       }
 
       children.add(TabWidget(
         title: item.label,
         toolTip: item.toolTip,
-        leading: Icon(
-          item.icon,
-        ),
+        icon: item.icon,
         closeable: widget.closeable!,
         onClose: () {
           widget.controller.removeItem(index);
@@ -155,6 +186,7 @@ class _TabViewState extends State<TabView> with SingleTickerProviderStateMixin {
         selected: index == widget.controller.selectedIndex,
         selectedColor: widget.selectedColor ?? Theme.of(context).primaryColor,
         hoverColor: widget.hoverColor ?? Theme.of(context).hoverColor,
+        closeHoverText: widget.closeHoverText,
       ));
     });
     return Scrollbar(
@@ -285,20 +317,20 @@ class TabRenderBox extends RenderBox
   void paint(PaintingContext context, Offset offset) {
     var children = getChildrenAsList();
     if (children.isEmpty) return;
-    final rrect = RRect.fromRectAndCorners(
-      offset & size,
-      topLeft: borderRadius != null ? borderRadius!.topLeft : Radius.zero,
-      topRight: borderRadius != null ? borderRadius!.topRight : Radius.zero,
-      bottomLeft: borderRadius != null ? borderRadius!.bottomLeft : Radius.zero,
-      bottomRight:
-          borderRadius != null ? borderRadius!.bottomRight : Radius.zero,
-    );
+    // final rrect = RRect.fromRectAndCorners(
+    //   offset & size,
+    //   topLeft: borderRadius != null ? borderRadius!.topLeft : Radius.zero,
+    //   topRight: borderRadius != null ? borderRadius!.topRight : Radius.zero,
+    //   bottomLeft: borderRadius != null ? borderRadius!.bottomLeft : Radius.zero,
+    //   bottomRight:
+    //       borderRadius != null ? borderRadius!.bottomRight : Radius.zero,
+    // );
 
-    final Paint paint = Paint()
-      ..color = borderColor
-      ..strokeWidth = borderWidth
-      ..style = PaintingStyle.stroke;
-    context.canvas.drawRRect(rrect, paint);
+    // final Paint paint = Paint()
+    //   ..color = borderColor
+    //   ..strokeWidth = borderWidth
+    //   ..style = PaintingStyle.stroke;
+    // context.canvas.drawRRect(rrect, paint);
 
     for (RenderBox child in children) {
       final TabLayoutParentData childParentData =
@@ -311,7 +343,7 @@ class TabRenderBox extends RenderBox
 class TabWidget extends StatelessWidget {
   final String title;
   final String? toolTip;
-  final Widget? leading;
+  final IconData? icon;
   final bool? closeable;
   final double? height;
   final double? maxWidth;
@@ -322,22 +354,24 @@ class TabWidget extends StatelessWidget {
   final bool? selected;
   final Color? selectedColor;
   final Color? hoverColor;
+  final String? closeHoverText;
 
   TabWidget({
     super.key,
     required this.title,
     this.toolTip,
-    this.leading,
+    this.icon,
     this.closeable = true,
     this.height = 32,
-    this.maxWidth = 100,
+    this.maxWidth = 200,
     this.onClick,
     this.onClose,
     this.borderRadius,
     this.border,
     this.selected = false,
-    this.selectedColor,
-    this.hoverColor,
+    this.selectedColor = Colors.transparent,
+    this.hoverColor = Colors.transparent,
+    this.closeHoverText = "Close Tab",
   }) {
     if (closeable! && onClose == null) {
       throw Exception("Closeable is true but onClose is null");
@@ -346,50 +380,81 @@ class TabWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      return InkWell(
+    List<Widget> leadWidgets = [];
+    double textMaxWidth = 0;
+    if (icon != null) {
+      leadWidgets.add(const SizedBox(
+        width: 4,
+      ));
+      leadWidgets.add(Container(
+          width: 32,
+          height: 32,
+          padding: const EdgeInsets.all(4),
+          child: Icon(icon!)));
+      leadWidgets.add(const SizedBox(
+        width: 4,
+      ));
+      textMaxWidth = maxWidth! -
+          8 -
+          32 -
+          (border != null ? (border!.left.width + border!.right.width) : 0);
+    } else {
+      leadWidgets.add(const SizedBox(
+        width: 4,
+      ));
+      textMaxWidth = maxWidth! -
+          4 -
+          (border != null ? (border!.left.width + border!.right.width) : 0);
+    }
+    if (closeable!) {
+      textMaxWidth = textMaxWidth - 32;
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
         borderRadius: borderRadius,
-        hoverColor: hoverColor,
-        onTap: () {
-          if (onClick != null) {
-            onClick!();
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              border: border,
-              color: selected! ? selectedColor : Colors.transparent),
-          constraints: const BoxConstraints(maxWidth: 100),
-          height: height,
+        border: border,
+        color: selected! ? selectedColor : Colors.transparent,
+      ),
+      constraints: BoxConstraints(
+          maxWidth: maxWidth! + border!.left.width + border!.right.width),
+      curve: Curves.easeInOut,
+      height: height! + border!.bottom.width + border!.top.width,
+      child: LayoutBuilder(builder: (context, constraints) {
+        return InkWell(
+          borderRadius: borderRadius,
+          hoverColor: hoverColor,
+          onTap: () {
+            if (onClick != null) {
+              onClick!();
+            }
+          },
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                  child: Tooltip(
-                      message: toolTip ?? "",
-                      waitDuration: const Duration(seconds: 1),
-                      verticalOffset: 18,
-                      child: Row(
-                        children: [
-                          const SizedBox(
-                            width: 4,
-                          ),
-                          leading!,
-                          const SizedBox(
-                            width: 4,
-                          ),
-                          Expanded(
-                              child: Text(
-                            title,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ))
-                        ],
-                      ))),
+              Tooltip(
+                message: toolTip ?? "",
+                waitDuration: const Duration(seconds: 1),
+                verticalOffset: 18,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ...leadWidgets,
+                    Container(
+                        constraints: BoxConstraints(maxWidth: textMaxWidth),
+                        child: Text(
+                          title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ))
+                  ],
+                ),
+              ),
               if (closeable!)
                 Tooltip(
-                  verticalOffset: 14,
-                    message: "Close Tab",
+                    verticalOffset: 14,
+                    message: closeHoverText ?? "",
                     waitDuration: const Duration(seconds: 1),
                     child: Container(
                       margin: const EdgeInsets.all(4),
@@ -409,8 +474,8 @@ class TabWidget extends StatelessWidget {
                     ))
             ],
           ),
-        ),
-      );
-    });
+        );
+      }),
+    );
   }
 }
